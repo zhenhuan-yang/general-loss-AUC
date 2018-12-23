@@ -8,9 +8,9 @@ import numpy as np
 import pandas as pd
 import csv
 from sklearn.metrics import roc_curve, auc
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import KFold
-import matplotlib.pyplot as plt
+#from sklearn.model_selection import train_test_split
+#from sklearn.model_selection import KFold
+#import matplotlib.pyplot as plt
 import time
 from sklearn.utils import shuffle
 from itertools import product
@@ -286,9 +286,9 @@ def loader(filename):
     norm = np.linalg.norm(X,axis=1)
     X = X/norm[:,None]
     # convert to binary class
-    r = np.ptp(Y)
-    index = np.argwhere(Y<r//2)
-    INDEX = np.argwhere(Y>=r//2)
+    r = np.ptp(Y).astype(int)
+    index = np.argwhere(Y<=r//2)
+    INDEX = np.argwhere(Y>r//2)
     Y[index] = -1
     Y[INDEX] = 1
     Y = Y.astype(int)
@@ -622,7 +622,7 @@ def gs(dataset,loss,alg,folders,GAMMA=[0.0],LAM=[0.0],THETA=[1.0],C=[1.0]):
         paras = X_train_augmented,X_test,Y_train_augmented, Y_test,loss,alg
         for gamma,lam,theta,c in product(range(len(GAMMA)),range(len(LAM)),range(len(THETA)),range(len(C))):
             input_paras.append((folder,gamma,lam,theta,c,paras))
-    print('how many paras: %d' % len(input_paras))
+    print('dataset: %s loss: %s algorithm: %s how many paras: %d' % (dataset,loss,alg,len(input_paras)))
     # grid search run on multiprocessors
     pool = multiprocessing.Pool(processes=num_cpus)
     results_pool = pool.map(single_run,input_paras)
@@ -645,15 +645,15 @@ def gs(dataset,loss,alg,folders,GAMMA=[0.0],LAM=[0.0],THETA=[1.0],C=[1.0]):
 
 
 N=10
-T=200
+T=1000
 batch=1
 
 
 # In[71]:
 
 
-GAMMA = [0.01]
-LAM = [1,10]
+GAMMA = [0.1]
+LAM = [10]
 THETA = [0.25]
 C = [10]
 
@@ -662,11 +662,11 @@ C = [10]
 
 if __name__ == '__main__':
     run_time = time.time()
-    usps_logistic = gs('usps', 'logistic', 'PGSPD', 5, GAMMA, LAM, THETA, C)
+    acoustic_logisitc = gs('acoustic', 'logistic', 'PGSPD', 5, GAMMA, LAM, THETA, C)
 
     print('total elapsed time: %f' %(time.time() - run_time))
 
-    np.save('usps_logisitc',usps_logistic)
+    np.save('acoustic_logisitc',acoustic_logisitc)
 
 
 
