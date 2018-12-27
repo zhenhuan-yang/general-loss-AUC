@@ -9,15 +9,13 @@ import h5py
 from sklearn.metrics import roc_curve, auc
 #from sklearn.model_selection import train_test_split
 #from sklearn.model_selection import KFold
+#from sklearn.utils import shuffle
 #import matplotlib.pyplot as plt
 import time
-from sklearn.utils import shuffle
+from random import shuffle
 from itertools import product
 import multiprocessing as mp
 from math import sqrt,log,exp,fabs
-#import pickle4reducer
-#ctx = mp.get_context()
-#ctx.reducer = pickle4reducer.Pickle4Reducer()
 # In[2]:
 
 
@@ -306,12 +304,13 @@ def split(folder,folders):
 # In[15]:
 
 
-def prox(eta,loss,x,y,L,gamma,lam,wj,aj,bj,alphaj,bwt,bat,bbt,balphat):
+#def prox(eta,loss,x,y,L,gamma,lam,wj,aj,bj,alphaj,bwt,bat,bbt,balphat):
+def prox(eta, loss, index, L, gamma, lam, wj, aj, bj, alphaj, bwt, bat, bbt, balphat):
     '''
     perform proximal guided gradient descent when receive an sample
     '''
 
-    prod = np.dot(wj,x)
+    prod = np.dot(wj,FEATURES[index])
     fpt = np.zeros(N+1)
     gfpt = np.zeros(N+1)
     # hfpt = np.zeros(N+1)
@@ -329,11 +328,11 @@ def prox(eta,loss,x,y,L,gamma,lam,wj,aj,bj,alphaj,bwt,bat,bbt,balphat):
         #print(fpt[i])
         fnt[i],gfnt[i],_ = neg(loss,i,prod,L)
         run_time += _
-        gradwt += w_grad(gfpt[i],gfnt[i],y,aj[i],bj[i],alphaj[i])# accumulate i
+        gradwt += w_grad(gfpt[i],gfnt[i],LABELS[index],aj[i],bj[i],alphaj[i])# accumulate i
         # hesswt += w_hess(hfpt[i],hfnt[i],y,aj[i],bj[i],alphaj[i])
-        gradat = a_grad(fpt[i],y,aj[i])
-        gradbt = b_grad(fnt[i],y,bj[i])
-        gradalphat = alpha_grad(fpt[i],fnt[i],y,alphaj[i])
+        gradat = a_grad(fpt[i],LABELS[index],aj[i])
+        gradbt = b_grad(fnt[i],LABELS[index],bj[i])
+        gradalphat = alpha_grad(fpt[i],fnt[i],LABELS[index],alphaj[i])
         aj[i] = aj[i] - eta*(gradat/(N+1)+gamma*(aj[i]-bat[i]))
         bj[i] = bj[i] - eta*(gradbt/(N+1)+gamma*(bj[i]-bbt[i]))
         alphaj[i] = alphaj[i] + eta*gradalphat/(N+1)
@@ -341,7 +340,7 @@ def prox(eta,loss,x,y,L,gamma,lam,wj,aj,bj,alphaj,bwt,bat,bbt,balphat):
     # eigen,_ = np.linalg.eig(hessian)
     
     # print('minimum eigenvalue: %f' %(np.min(eigen)))
-    wj = wj - eta*(gradwt*x*y/(N+1) + lam*wj + gamma*(wj - bwt))
+    wj = wj - eta*(gradwt*FEATURES[index]*LABELS[index]/(N+1) + lam*wj + gamma*(wj - bwt))
     wj = proj(wj,L/2)
     #aJ = proj(aJ,1)
     #bJ = proj(bJ,1)
@@ -352,8 +351,8 @@ def prox(eta,loss,x,y,L,gamma,lam,wj,aj,bj,alphaj,bwt,bat,bbt,balphat):
 
 # In[16]:
 
-
-def PGSPD(t,loss,X,Y,L,gamma,lam,theta,c,bwt,bat,bbt,balphat):
+#def PGSPD(t,loss,X,Y,L,gamma,lam,theta,c,bwt,bat,bbt,balphat):
+def PGSPD(t,loss,passing_list,L,gamma,lam,theta,c,bwt,bat,bbt,balphat):
     '''
     Proximally Guided Stochastic Primal Dual Algorithm
     '''
@@ -375,7 +374,8 @@ def PGSPD(t,loss,X,Y,L,gamma,lam,theta,c,bwt,bat,bbt,balphat):
     # inner loop update at j
     for j in range(t): 
         # update inner loop variables
-        Wt,At,Bt,ALPHAt,_ = prox(ETAt,loss,X[j],Y[j],L,gamma,lam,Wt,At,Bt,ALPHAt,bwt,bat,bbt,balphat)
+        Wt, At, Bt, ALPHAt, _ = prox(ETAt, loss, passing_list[j], L, gamma, lam, Wt, At, Bt, ALPHAt, bwt, bat, bbt, balphat)
+        #Wt,At,Bt,ALPHAt,_ = prox(ETAt,loss,X[j],Y[j],L,gamma,lam,Wt,At,Bt,ALPHAt,bwt,bat,bbt,balphat)
         run_time += _
         BWt += Wt
         BAt += At
@@ -453,7 +453,7 @@ def SOLAM(t,loss,batch,X,Y,L,lam,theta,c,wt,at,bt,alphat):
 
 
 #def demo(X_train_augmented,X_test,Y_train_augmented,Y_test,loss,alg,gamma=0.1,lam=1.0,theta=0.1,c = 1.0):
-def demo(X_train_augmented, X_test, Y_train_augmented, Y_test, loss, alg, gamma=0.1, lam=1.0, theta=0.1, c=1.0):
+def demo(train_list, test_list, loss, alg, gamma=0.01, lam=10.0, theta=0.25, c=10.0):
     '''
     Run it to get results
     '''
@@ -469,8 +469,8 @@ def demo(X_train_augmented, X_test, Y_train_augmented, Y_test, loss, alg, gamma=
         return
     
     # get dimensions of the data
-    num,d = X_train_augmented.shape
-    
+    num = len(train_list)
+    _,d = FEATURES.shape
     # initialize outer loop variables
     WT = np.zeros(d) # d is the dimension of the features
     AT = np.zeros(N+1)
@@ -491,20 +491,24 @@ def demo(X_train_augmented, X_test, Y_train_augmented, Y_test, loss, alg, gamma=
                 end = (t*(t+1)//2)%num
                 if begin < end:
                     tr_list = [i for i in range(begin,end)]
-                    x_train = X_train_augmented[begin:end]
-                    y_train = Y_train_augmented[begin:end]
+                    #x_train = X_train_augmented[begin:end]
+                    #y_train = Y_train_augmented[begin:end]
                 else: # need to think better
                     tr_list = [i for i in range(begin,num)] + [i for i in range(end)]
-                    x_train = np.append(X_train_augmented[begin:],X_train_augmented[:end],axis=0)
-                    y_train = np.append(Y_train_augmented[begin:],Y_train_augmented[:end],axis=0)
-                # print(sum(x_train))
-                x_train, y_train = shuffle(x_train,y_train)
+                    #x_train = np.append(X_train_augmented[begin:],X_train_augmented[:end],axis=0)
+                    #a = aay_train = np.append(Y_train_augmented[begin:],Y_train_augmented[:end],axis=0)
+                shuffle(tr_list) # shuffle works in place
+                #x_train, y_train = shuffle(x_train,y_train)
                 # update outer loop variables
-                WT,AT,BT,ALPHAT,_ = PGSPD(t,loss,x_train,y_train,L,gamma,lam,theta,c,WT,AT,BT,ALPHAT)
+                #WT,AT,BT,ALPHAT,_ = PGSPD(t,loss,x_train,y_train,L,gamma,lam,theta,c,WT,AT,BT,ALPHAT)
+                WT, AT, BT, ALPHAT, _ = PGSPD(t, loss, tr_list, L, gamma, lam, theta, c, WT,
+                                              AT, BT, ALPHAT)
                 run_time += _
             else:
-                x_train, y_train = shuffle(X_train_augmented,Y_train_augmented)
-                WT,AT,BT,ALPHAT,_ = PGSPD(num,loss,x_train,y_train,L,gamma,lam,theta,c,WT,AT,BT,ALPHAT)
+                tr_list = [i for i in range(num)]
+                shuffle(tr_list)
+                #x_train, y_train = shuffle(X_train_augmented,Y_train_augmented)
+                WT,AT,BT,ALPHAT,_ = PGSPD(num,loss,tr_list,L,gamma,lam,theta,c,WT,AT,BT,ALPHAT)
                 run_time += _
                 
         elif alg == 'SOLAM':
@@ -525,7 +529,7 @@ def demo(X_train_augmented, X_test, Y_train_augmented, Y_test, loss, alg, gamma=
             return
         
         try:
-            fpr, tpr, _ = roc_curve(Y_test, np.dot(X_test,WT))
+            fpr, tpr, _ = roc_curve(LABELS[test_list], np.dot(FEATURES[test_list],WT))
             roc_auc[t-1] = auc(fpr, tpr)
         except RuntimeWarning:
             print('Something is wrong bruh! Look at sum of WT: %f' %(sum(WT)))
@@ -544,12 +548,12 @@ def demo(X_train_augmented, X_test, Y_train_augmented, Y_test, loss, alg, gamma=
 # In[19]:
 
 
-def cv(dataset,loss,alg,folders,gamma=0.0,lam=0.0,theta=1.0,c=1.0):
+def cv(loss,alg,folders=5,gamma=0.01,lam=10.0,theta=0.25,c=10.0):
     '''
     Cross validation
     '''
     # Load data set
-    FEATURES,LABELS = loader(dataset) 
+    #FEATURES,LABELS = loader(dataset)
     
     # record auc
     AUC_ROC = np.zeros(folders)
@@ -557,9 +561,12 @@ def cv(dataset,loss,alg,folders,gamma=0.0,lam=0.0,theta=1.0,c=1.0):
     # cross validation
     for folder in range(folders):
         print('folder = %d' %(folder))
-        X_train_augmented,X_test,Y_train_augmented,Y_test = split(FEATURES,LABELS,folder,folders)
+        #X_train_augmented,X_test,Y_train_augmented,Y_test = split(FEATURES,LABELS,folder,folders)
+        training,testing = split(folder, folders)
         
-        _,_,_,_,roc_auc = demo(X_train_augmented,X_test,Y_train_augmented,Y_test,loss,alg,gamma=gamma,lam=lam,theta=theta,c=c)
+        #_,_,_,_,roc_auc = demo(X_train_augmented,X_test,Y_train_augmented,Y_test,loss,alg,gamma=gamma,lam=lam,theta=theta,c=c)
+        _, _, _, _, roc_auc = demo(training, testing, loss, alg, gamma=gamma,
+                                   lam=lam, theta=theta, c=c)
         AUC_ROC[folder] = max(roc_auc)
     print('auc score: %f +/- %f' %(np.mean(AUC_ROC),np.std(AUC_ROC)))
     return AUC_ROC
@@ -570,28 +577,28 @@ def cv(dataset,loss,alg,folders,gamma=0.0,lam=0.0,theta=1.0,c=1.0):
 
 def single_run(para):
     folder,gamma,lam,theta,c,paras = para
-    X_train_augmented,X_test,Y_train_augmented, Y_test,loss,alg = paras
-    _,_,_,_,roc_auc = demo(X_train_augmented,X_test,Y_train_augmented,Y_test,loss,alg
-                           ,gamma=GAMMA[gamma],lam=LAM[lam],theta=THETA[theta],c=C[c])
-    return folder,gamma,lam,theta,c, np.max(roc_auc)
+    training,testing,loss,alg = paras
+    #X_train_augmented,X_test,Y_train_augmented, Y_test,loss,alg = paras
+    _,_,_,_,roc_auc = demo(training,testing,loss,alg,gamma=GAMMA[gamma],lam=LAM[lam],theta=THETA[theta],c=C[c])
+    return folder,gamma,lam,theta,c, max(roc_auc)
     
-def gs(dataset,loss,alg,folders,GAMMA=[0.0],LAM=[0.0],THETA=[1.0],C=[1.0]):
+def gs(loss,alg,folders=5,GAMMA=[0.01],LAM=[10.0],THETA=[0.25],C=[10.0]):
     '''
     Grid search! Wuss up fellas?!
     And we are using multiprocessing, fancy!
     '''
     # number of cpu want to use
-    num_cpus = 15
+    num_cpus = 1
     # Load data set
-    FEATURES,LABELS = loader(dataset) 
+    #FEATURES,LABELS = loader(dataset)
     # record auc
     AUC_ROC = np.zeros((folders,len(GAMMA),len(LAM),len(THETA),len(C)))
     # record parameters
     input_paras = []
     # grid search prepare
     for folder in range(folders):
-        X_train_augmented,X_test,Y_train_augmented,Y_test = split(FEATURES,LABELS,folder,folders)
-        paras = X_train_augmented,X_test,Y_train_augmented, Y_test,loss,alg
+        training,testing = split(folder,folders)
+        paras = training,testing,loss,alg
         for gamma,lam,theta,c in product(range(len(GAMMA)),range(len(LAM)),range(len(THETA)),range(len(C))):
             input_paras.append((folder,gamma,lam,theta,c,paras))
     print('dataset: %s loss: %s algorithm: %s how many paras: %d' % (dataset,loss,alg,len(input_paras)))
@@ -627,16 +634,21 @@ if __name__ == '__main__':
     T = 1000
     batch = 1
 
+    # Define model parameters
     GAMMA = [0.01]
     LAM = [10]
     THETA = [0.25]
     C = [10]
 
+    # Define hyper parameters
+    loss = 'hinge'
+    alg = 'PGSPD'
+
     run_time = time.time()
-    news20_hinge = gs('news20', 'hinge', 'PGSPD', 5, GAMMA, LAM, THETA, C)
+    diabetes_hinge = gs(loss,alg)
 
     print('total elapsed time: %f' %(time.time() - run_time))
 
-    np.save('news20_hinge', news20_hinge)
+    np.save('diabetes_hinge', diabetes_hinge)
 
 
