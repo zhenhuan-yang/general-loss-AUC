@@ -19,5 +19,5 @@ def compute(x):
     return
 
 if __name__ == '__main__':
-    usps_logisitc = np.load('usps_logisitc.npy')
-    compute(usps_logisitc)
+    x = np.load('news20_hinge.npy')
+    compute(x)

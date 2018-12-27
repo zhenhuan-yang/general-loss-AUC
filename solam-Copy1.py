@@ -5,8 +5,7 @@
 
 
 import numpy as np
-import pandas as pd
-import csv
+import h5py
 from sklearn.metrics import roc_curve, auc
 #from sklearn.model_selection import train_test_split
 #from sklearn.model_selection import KFold
@@ -14,10 +13,11 @@ from sklearn.metrics import roc_curve, auc
 import time
 from sklearn.utils import shuffle
 from itertools import product
-import multiprocessing
-from math import sqrt,log,exp
-
-
+import multiprocessing as mp
+from math import sqrt,log,exp,fabs
+#import pickle4reducer
+#ctx = mp.get_context()
+#ctx.reducer = pickle4reducer.Pickle4Reducer()
 # In[2]:
 
 
@@ -255,84 +255,53 @@ def alpha_grad(fpt,fnt,yt,alphat):
     return gradalphat
 
 
-# In[13]:
-
-
-def loader(filename):
-    '''
-    Data file loader
-    
-    input:
-        filename - filename
-    
-    output:
-        x - sample features
-        y - sample labels
-    '''
-    # raw data
-    L = []
-    with open(filename,'r') as file:
-        for line in csv.reader(file, delimiter = ' '):
-            line[0] = '0:'+line[0]
-            line.remove('')
-            L.append(dict(i.split(':') for i in line))
-    df = pd.DataFrame(L,dtype=float).fillna(0)
-    X = df.iloc[:,1:].values
-    Y = df.iloc[:,0].values
-    # centralize
-    mean = np.mean(X,axis=1)
-    X = (X.transpose() - mean).transpose()
-    # normalize
-    norm = np.linalg.norm(X,axis=1)
-    X = X/norm[:,None]
-    # convert to binary class
-    r = np.ptp(Y).astype(int)
-    index = np.argwhere(Y<=r//2)
-    INDEX = np.argwhere(Y>r//2)
-    Y[index] = -1
-    Y[INDEX] = 1
-    Y = Y.astype(int)
-    return X,Y
-
 
 # In[14]:
 
 
-def split(FEATURES,LABELS,folder,folders):
+def split(folder,folders):
     
     if folder > folders:
         print('Exceed maximum folders!')
         return
+
     # load and split data
-    #FEATURES,LABELS = loader(dataset)
     n,d = FEATURES.shape
     # regular portion of each folder
     portion = round(n/folders)
     start = portion*folder
     stop = portion*(folder+1)
-    if np.abs(stop - n) < portion: # remainder occurs
-        X_train = FEATURES[:start,:]
+    if fabs(stop - n) < portion: # remainder occurs
+        train_list = [i for i in range(start)]
+        test_list = [i for i in range(start,n)]
+        '''
+        X_train = FEATURES[:start]
         Y_train = LABELS[:start]
-        X_test = FEATURES[start:,:]
+        X_test = FEATURES[start:]
         Y_test = LABELS[start:]
+        '''
     else:
-        mask = np.ones(n, bool)
+        train_list = [i for i in range(start)] + [x for x in range(stop, n)]
+        test_list = [i for i in range(start, stop)]
+        '''
+        mask = [True]*n
         mask[start:stop] = False
         X_train = FEATURES[mask,:]
         Y_train = LABELS[mask]
         X_test = FEATURES[start:stop]
         Y_test = LABELS[start:stop]
-    # get dimensions of the data
-    # n,_ = X_train.shape
+    get dimensions of the data
+    n,_ = X_train.shape
     # number of epoch
-    # epoch = T//n+1
-    # augment by epoch
-    # X_train_augmented = np.tile(X_train,(epoch,1)) # might have memory burden
-    # Y_train_augmented = np.tile(Y_train,epoch)
+    epoch = T//n+1
+    augment by epoch
+    X_train_augmented = np.tile(X_train,(epoch,1)) # might have memory burden
+    Y_train_augmented = np.tile(Y_train,epoch)
     
     #return X_train_augmented,X_test,Y_train_augmented,Y_test
-    return X_train,X_test,Y_train,Y_test
-
+    #return X_train,X_test,Y_train,Y_test
+    '''
+    return train_list,test_list
 
 # In[15]:
 
@@ -483,7 +452,8 @@ def SOLAM(t,loss,batch,X,Y,L,lam,theta,c,wt,at,bt,alphat):
 # In[69]:
 
 
-def demo(X_train_augmented,X_test,Y_train_augmented,Y_test,loss,alg,gamma=0.1,lam=1.0,theta=0.1,c = 1.0):
+#def demo(X_train_augmented,X_test,Y_train_augmented,Y_test,loss,alg,gamma=0.1,lam=1.0,theta=0.1,c = 1.0):
+def demo(X_train_augmented, X_test, Y_train_augmented, Y_test, loss, alg, gamma=0.1, lam=1.0, theta=0.1, c=1.0):
     '''
     Run it to get results
     '''
@@ -520,9 +490,11 @@ def demo(X_train_augmented,X_test,Y_train_augmented,Y_test,loss,alg,gamma=0.1,la
                 begin = (t*(t-1)//2)%num
                 end = (t*(t+1)//2)%num
                 if begin < end:
+                    tr_list = [i for i in range(begin,end)]
                     x_train = X_train_augmented[begin:end]
                     y_train = Y_train_augmented[begin:end]
                 else: # need to think better
+                    tr_list = [i for i in range(begin,num)] + [i for i in range(end)]
                     x_train = np.append(X_train_augmented[begin:],X_train_augmented[:end],axis=0)
                     y_train = np.append(Y_train_augmented[begin:],Y_train_augmented[:end],axis=0)
                 # print(sum(x_train))
@@ -624,13 +596,13 @@ def gs(dataset,loss,alg,folders,GAMMA=[0.0],LAM=[0.0],THETA=[1.0],C=[1.0]):
             input_paras.append((folder,gamma,lam,theta,c,paras))
     print('dataset: %s loss: %s algorithm: %s how many paras: %d' % (dataset,loss,alg,len(input_paras)))
     # grid search run on multiprocessors
-    pool = multiprocessing.Pool(processes=num_cpus)
-    results_pool = pool.map(single_run,input_paras)
-    pool.close()
-    pool.join()
-    # save results
-    for folder,gamma,lam,theta,c, auc_roc in results_pool:
-        AUC_ROC[folder,gamma,lam,theta,c] = auc_roc
+    with mp.Pool(processes=num_cpus) as pool:
+        results_pool = pool.map(single_run,input_paras)
+        pool.close()
+        pool.join()
+        # save results
+        for folder,gamma,lam,theta,c, auc_roc in results_pool:
+            AUC_ROC[folder,gamma,lam,theta,c] = auc_roc
     '''
     MEAN = np.zeros((len(GAMMA),len(LAM),len(THETA),len(C)))
     STD = np.zeros((len(GAMMA),len(LAM),len(THETA),len(C)))
@@ -641,36 +613,30 @@ def gs(dataset,loss,alg,folders,GAMMA=[0.0],LAM=[0.0],THETA=[1.0],C=[1.0]):
     return AUC_ROC
 
 
-# In[70]:
-
-
-N=10
-T=1000
-batch=1
-
-
-# In[71]:
-
-
-GAMMA = [0.1]
-LAM = [10]
-THETA = [0.25]
-C = [10]
-
-
-# In[72]:
-
 if __name__ == '__main__':
+
+    # Read data from hdf5 file
+    dataset = 'diabetes'
+    hf = h5py.File('%s.h5' %dataset, 'r')
+    FEATURES = hf['FEATURES'][:]
+    LABELS = hf['LABELS'][:]
+    hf.close()
+
+    # Define global parameters
+    N = 10
+    T = 1000
+    batch = 1
+
+    GAMMA = [0.01]
+    LAM = [10]
+    THETA = [0.25]
+    C = [10]
+
     run_time = time.time()
-    acoustic_logisitc = gs('acoustic', 'logistic', 'PGSPD', 5, GAMMA, LAM, THETA, C)
+    news20_hinge = gs('news20', 'hinge', 'PGSPD', 5, GAMMA, LAM, THETA, C)
 
     print('total elapsed time: %f' %(time.time() - run_time))
 
-    np.save('acoustic_logisitc',acoustic_logisitc)
-
-
-
-
-
+    np.save('news20_hinge', news20_hinge)
 
 
