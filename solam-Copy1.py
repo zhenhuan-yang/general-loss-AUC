@@ -6,11 +6,7 @@
 
 import numpy as np
 import h5py
-from sklearn.metrics import roc_curve, auc
-#from sklearn.model_selection import train_test_split
-#from sklearn.model_selection import KFold
-#from sklearn.utils import shuffle
-#import matplotlib.pyplot as plt
+from sklearn.metrics import roc_auc_score
 import time
 from random import shuffle
 from itertools import product
@@ -279,7 +275,7 @@ def split(folder,folders):
         Y_test = LABELS[start:]
         '''
     else:
-        train_list = [i for i in range(start)] + [x for x in range(stop, n)]
+        train_list = [i for i in range(start)] + [i for i in range(stop, n)]
         test_list = [i for i in range(start, stop)]
         '''
         mask = [True]*n
@@ -529,8 +525,7 @@ def demo(train_list, test_list, loss, alg, gamma=0.01, lam=10.0, theta=0.25, c=1
             return
         
         try:
-            fpr, tpr, _ = roc_curve(LABELS[test_list], np.dot(FEATURES[test_list],WT))
-            roc_auc[t-1] = auc(fpr, tpr)
+            roc_auc[t-1] = roc_auc_score(LABELS[test_list], np.dot(FEATURES[test_list],WT))
         except RuntimeWarning:
             print('Something is wrong bruh! Look at sum of WT: %f' %(sum(WT)))
             return WT,AT,BT,ALPHAT,roc_auc
@@ -629,7 +624,7 @@ if __name__ == '__main__':
     LABELS = hf['LABELS'][:]
     hf.close()
 
-    # Define global parameters
+    # Define hyper parameters
     N = 10
     T = 1000
     batch = 1
