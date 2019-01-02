@@ -364,7 +364,7 @@ def PGSPD(t,loss,passing_list,L,gamma,lam,theta,c,bwt,bat,bbt,balphat):
     BBt = Bt+0.0
     BALPHAt = ALPHAt+0.0
     
-    ETAt = c/(t**theta)
+    ETAt = c/(t**theta)/gamma
 
     run_time = 0.0
     # inner loop update at j
@@ -526,7 +526,7 @@ def demo(train_list, test_list, loss, alg, gamma=0.01, lam=10.0, theta=0.25, c=1
         
         try:
             roc_auc[t-1] = roc_auc_score(LABELS[test_list], np.dot(FEATURES[test_list],WT))
-        except RuntimeWarning:
+        except ValueError:
             print('Something is wrong bruh! Look at sum of WT: %f' %(sum(WT)))
             return WT,AT,BT,ALPHAT,roc_auc
         if t%100 == 0:
@@ -583,7 +583,7 @@ def gs(loss,alg,folders=5,GAMMA=[0.01],LAM=[10.0],THETA=[0.25],C=[10.0]):
     And we are using multiprocessing, fancy!
     '''
     # number of cpu want to use
-    num_cpus = 1
+    num_cpus = 15
     # Load data set
     #FEATURES,LABELS = loader(dataset)
     # record auc
@@ -615,11 +615,65 @@ def gs(loss,alg,folders=5,GAMMA=[0.01],LAM=[10.0],THETA=[0.25],C=[10.0]):
     return AUC_ROC
 
 
+def bound(loss, lam):
+    '''
+    Calculate annoying parameters to estimate rho
+    '''
+    if loss == 'hinge':
+        L = 2 * sqrt(2 / lam)
+        loss = lambda x: max(0, 1 + L - 2 * L * x)
+    elif loss == 'logistic':
+        L = 2 * sqrt(2 * log(2) / lam)
+        loss = lambda x: log(1 + exp(L - 2 * L * x))
+    else:
+        print('Wrong loss function!')
+
+    R1 = 0.0
+    R2 = 0.0
+    Sp1 = 0.0
+    Sm1 = 0.0
+    Sp2 = 0.0
+    Sm2 = 0.0
+    for i in range(N + 1):
+        # compute plus
+        alpha0 = L ** i
+        alpha1 = i * L ** (i - 1)
+        alpha2 = i * (i - 1) * L ** (i - 2)
+        R1 += alpha0
+        Sp1 += alpha1
+        Sp2 += alpha2
+        # compute minus
+        beta0 = 0.0
+        beta1 = 0.0
+        beta2 = 0.0
+        for k in range(i, N + 1):
+            # compute forward difference
+            delta = 0.0
+            for j in range(k + 1):
+                delta += comb_dict[k][j] * (-1) ** (k - j) * loss(j / N)
+            # compute coefficient
+            beta0 += comb_dict[N][k] * comb_dict[k][i] * (N + 1) * fabs(delta) / (2 ** k) / (L ** i)
+            beta1 += comb_dict[N][k] * comb_dict[k][i] * (N + 1) * (k - i) * fabs(delta) / (2 ** k) / (L ** (i + 1))
+            beta2 += comb_dict[N][k] * comb_dict[k][i] * (N + 1) * (k - i) * (k - i - 1) * fabs(delta) / (2 ** k) / (
+                        L ** (i + 2))
+        R2 += beta0
+        Sm1 += beta1
+        Sm2 += beta2
+
+    gammap0 = max(Sp1 + (2 * R1 + R2) * Sp2, 1 + Sp1)
+    gammam0 = max(Sm1 + (2 * R2 + R1) * Sm2, 1 + Sm1)
+    gamma0_v1 = sqrt(3) / (N + 1) * max(gammap0, gammam0)
+
+    rho = max((2 * R1 + R2) * Sp2 / (N + 1), (2 * R2 + R1) * Sm2 / (N + 1))
+    gamma0_v2 = max(0, (fabs(1 + (rho - lam) * (N + 1)) - 1) / 2 / (N + 1) + (rho - lam) / 2)
+    return R1,R2,gamma0_v1, gamma0_v2
+
 if __name__ == '__main__':
 
     # Read data from hdf5 file
     dataset = 'diabetes'
-    hf = h5py.File('%s.h5' %dataset, 'r')
+    i = 3
+    hf = h5py.File('%s.h5' %(dataset), 'r')
     FEATURES = hf['FEATURES'][:]
     LABELS = hf['LABELS'][:]
     hf.close()
@@ -628,22 +682,26 @@ if __name__ == '__main__':
     N = 10
     T = 1000
     batch = 1
+    folders = 2
 
     # Define model parameters
-    GAMMA = [0.01]
+    #GAMMA = [0.1,10000]
     LAM = [10]
     THETA = [0.25]
-    C = [10]
+    C = [1]
 
     # Define hyper parameters
     loss = 'hinge'
     alg = 'PGSPD'
 
+    _,gamma0 = calculate(loss,LAM[0])
+    GAMMA = [0.1,gamma0]
+
     run_time = time.time()
-    diabetes_hinge = gs(loss,alg)
+    x = gs(loss,alg,folders=folders,GAMMA=GAMMA,LAM=LAM,THETA=THETA,C=C)
 
     print('total elapsed time: %f' %(time.time() - run_time))
 
-    np.save('diabetes_hinge', diabetes_hinge)
+    np.save('%s_%s'%(dataset,loss), x)
 
 
