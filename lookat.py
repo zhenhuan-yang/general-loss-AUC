@@ -19,5 +19,7 @@ def compute(x):
     return
 
 if __name__ == '__main__':
-    x = np.load('news20_hinge.npy')
+    dataset = 'diabetes'
+    loss = 'hinge'
+    x = np.load('%s_%s.npy'%(dataset,loss))
     compute(x)

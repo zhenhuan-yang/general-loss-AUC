@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import h5py
 
-def loader(filename,m = True,n = True):
+def loader(filename,i,m = True,n = True):
     '''
     Data file loader
 
@@ -34,20 +34,22 @@ def loader(filename,m = True,n = True):
         X = X / norm[:, None]
     # convert to binary class
     if max(Y) == 1:
-        pass
+        print('binary classes already!')
     else:
         r = np.ptp(Y).astype(int)
-        index = np.argwhere(Y <= r // 2)
-        INDEX = np.argwhere(Y > r // 2)
+        print('num of classes: %d' %(r+1))
+        index = np.argwhere(Y <= i)
+        INDEX = np.argwhere(Y > i)
         Y[index] = -1
         Y[INDEX] = 1
     Y = Y.astype(int)
     return X, Y
 
 if __name__ == '__main__':
-    dataset = 'news20'
-    FEATURES,LABELS = loader(dataset)
-    hf = h5py.File('%s.h5' %dataset, 'w')
+    dataset = 'diabetes'
+    i = 3
+    FEATURES,LABELS = loader(dataset,i,m=False)
+    hf = h5py.File('%s.h5' %(dataset), 'w')
     hf.create_dataset('FEATURES',data=FEATURES)
     hf.create_dataset('LABELS', data=LABELS)
     hf.close()
