@@ -73,7 +73,7 @@ def loss_func(loss,lam):
         lo = lambda x: max(0,1+L-2*L*x)
     elif loss == 'logistic':
         L = 2*sqrt(2*log(2)/lam)
-        l0 = lambda x:log(1+exp(L-2*L*x))
+        lo = lambda x:log(1+exp(L-2*L*x))
     else:
         print('Wrong loss function!')
         
@@ -478,7 +478,7 @@ def SOLAM(t,loss,batch,X,Y,L,lam,theta,c,wt,at,bt,alphat):
 # In[169]:
 
 
-def demo(train_list,test_list,loss,alg,gamma=0.01,lam=10.0,theta=0.25,c = 10.0):
+def demo(train_list,test_list,loss,alg,gamma=0.01,lam=10.0,theta=0.25,c = 10.0,WT = 0,AT = 0,BT=0,ALPHAT=0,t0 = 1):
     '''
     Run it to get results
     '''
@@ -493,25 +493,42 @@ def demo(train_list,test_list,loss,alg,gamma=0.01,lam=10.0,theta=0.25,c = 10.0):
     _,d = FEATURES.shape
     
     # initialize outer loop variables
-    WT = np.zeros(d) # d is the dimension of the features
-    AT = np.zeros(N+1)
-    BT = np.zeros(N+1)
-    ALPHAT = np.zeros(N+1)
+    if WT == 0 :
+        WT = np.zeros(d) # d is the dimension of the features
+        AT = np.zeros(N+1)
+        BT = np.zeros(N+1)
+        ALPHAT = np.zeros(N+1)
     
     # store all variables
-    W = np.zeros((T,d))
+    #W = np.zeros((T,d))
 
     # record auc
     roc_auc = np.zeros(T)
     # record time elapsed
     start_time = time.time()
     
-    for t in range(1,T+1):    
+    for t in range(t0,T+1):
         
         # store current WT
-        W[t-1] = WT + 0.0
+        #W[t-1] = WT + 0.0
         if alg == 'PGSPD':
-        
+            epoch = t // num
+            begin = (t * (t - 1) // 2) % num
+            end = (t * (t + 1) // 2) % num
+            if epoch < 1:
+                if begin < end:
+                    tr_list = [i for i in range(begin, end)]
+                else:  # need to think better
+                    tr_list = [i for i in range(begin, num)] + [i for i in range(end)]
+            else:
+                if begin < end:
+                    tr_list = [i for i in range(begin, num)] + [i for i in range(num)] * (epoch - 1) + [i for i in range(end)]
+                else:
+                    tr_list = [i for i in range(begin, num)] + [i for i in range(num)] * epoch + [i for i in range(end)]
+            # shuffle(tr_list) # shuffle works in place
+            # update outer loop variables
+            WT, AT, BT, ALPHAT = PGSPD(t, lo, tr_list, L, R1, R2, gamma, lam, theta, c, WT, AT, BT, ALPHAT)
+            '''
             if t<num:
                 begin = (t*(t-1)//2)%num
                 end = (t*(t+1)//2)%num
@@ -528,7 +545,7 @@ def demo(train_list,test_list,loss,alg,gamma=0.01,lam=10.0,theta=0.25,c = 10.0):
                 tr_list = [i for i in range(num)]
                 #shuffle(tr_list)
                 WT,AT,BT,ALPHAT = PGSPD(num,lo,tr_list,L,R1,R2,gamma,lam,theta,c,WT,AT,BT,ALPHAT)
-                
+            '''
         elif alg == 'SOLAM':
 
             # sample a point
@@ -557,7 +574,7 @@ def demo(train_list,test_list,loss,alg,gamma=0.01,lam=10.0,theta=0.25,c = 10.0):
                   %(gamma,lam,theta,c,t,roc_auc[t-1],elapsed_time))
             start_time = time.time()
             
-    return W,roc_auc
+    return WT,AT,BT,ALPHAT,roc_auc#,W
 
 
 # In[20]:
@@ -621,41 +638,21 @@ def gs(loss,alg,folders=5,GAMMA=[0.01],LAM=[10.0],THETA=[0.25],C=[10.0]):
     return AUC_ROC
 
 
-# In[22]:
-
-
-def compute(x):
-    folders,GAMMA,LAM,THETA,C = x.shape
-
-    MEAN = np.zeros((GAMMA, LAM, THETA, C))
-    STD = np.zeros((GAMMA, LAM, THETA, C))
-
-    for gamma, lam, theta, c in product(range(GAMMA), range(LAM), range(THETA), range(C)):
-        MEAN[gamma, lam, theta, c] = np.mean(x[:, gamma, lam, theta, c])
-        STD[gamma, lam, theta, c] = np.std(x[:, gamma, lam, theta, c])
-
-    print('Mean:')
-    print(MEAN)
-    print('Standard deviation:')
-    print(STD)
-    return MEAN,STD
-
-
 # In[117]:
 
 
-def smooth(loss,alg,gamma=0.01,lam=10.0,theta=0.25,c = 10.0):
+def smooth(loss,alg,gamma=0.01,lam=10.0,theta=0.25,c = 10.0,WT = 0,AT = 0,BT=0,ALPHAT=0,t0 = 1):
     '''
     Smooth output auc by averaging
     '''
     num = len(LABELS)
     training = [i for i in range(num)]
     testing = [i for i in range(num)]
-    W,roc_auc = demo(training,testing,loss,alg,gamma=gamma,lam=lam,theta=theta,c=c)
-    t = np.arange(T) + 1
-    W = np.cumsum(W,axis = 0)/t[:,None]
+    WT,AT,BT,ALPHAT,roc_auc = demo(training,testing,loss,alg,gamma=gamma,lam=lam,theta=theta,c=c,WT = WT,AT = AT,BT=BT,ALPHAT=ALPHAT,t0 = t0)
+    #t = np.arange(T) + 1
+    #W = np.cumsum(W,axis = 0)/t[:,None]
     
-    return W,roc_auc
+    return WT,AT,BT,ALPHAT,roc_auc
 
 
 # In[28]:
@@ -692,15 +689,15 @@ if __name__ == '__main__':
     hf.close()
 
     # Define hyper parameters
-    N = 10
-    T = 1000
+    N = 5
+    T = 2000
     batch = 1
     folders = 2
 
     # Define model parameters
-    GAMMA = [1000]
+    GAMMA = [100]
     LAM = [10]
-    THETA = [0.25]
+    THETA = [0.5]
     C = [1]
 
     # Define hyper parameters
@@ -708,11 +705,13 @@ if __name__ == '__main__':
     alg = 'PGSPD'
 
     run_time = time.time()
-    #x = smooth(loss,alg,gamma=GAMMA[0],lam=LAM[0],theta=THETA[0],c = C[0])
-    x = gs(loss,alg,folders=folders,GAMMA=GAMMA,LAM=LAM,THETA=THETA,C=C)
+    wt,at,bt,alphat,auc = smooth(loss,alg,gamma=GAMMA[0],lam=LAM[0],theta=THETA[0],c = C[0])
+    #wt, at, bt, alphat, auc = smooth(loss, alg, gamma=GAMMA[0], lam=LAM[0], theta=THETA[0], c=C[0], t0=101, WT=wt, AT=at, BT= bt, ALPHAT=alphat)
+    #x = gs(loss,alg,folders=folders,GAMMA=GAMMA,LAM=LAM,THETA=THETA,C=C)
 
     print('total elapsed time: %f' %(time.time() - run_time))
-
-    np.save('%s_%s'%(dataset,loss), x)
+    plt.plot(auc)
+    plt.show()
+    #np.save('%s_%s'%(dataset,loss), x)
 
 
