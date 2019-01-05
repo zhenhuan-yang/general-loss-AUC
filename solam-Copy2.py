@@ -67,12 +67,15 @@ def bound(loss,L,lam):
 
 
 def loss_func(loss,lam):
+
+    L = 0.2
+
     # define loss function
     if loss == 'hinge':
-        L = 2*sqrt(2/lam)
+        #L = 2*sqrt(2/lam)
         lo = lambda x: max(0,1+L-2*L*x)
     elif loss == 'logistic':
-        L = 2*sqrt(2*log(2)/lam)
+        #L = 2*sqrt(2*log(2)/lam)
         lo = lambda x:log(1+exp(L-2*L*x))
     else:
         print('Wrong loss function!')
@@ -363,14 +366,17 @@ def prox(eta,loss,index,L,R1,R2,gamma,lam,wj,aj,bj,alphaj,bwt,bat,bbt,balphat):
         gradat = a_grad(fpt[i],LABELS[index],aj[i])
         gradbt = b_grad(fnt[i],LABELS[index],bj[i])
         gradalphat = alpha_grad(fpt[i],fnt[i],LABELS[index],alphaj[i])
-        aj[i] = aj[i] - eta*(gradat/(2*(N+1))+gamma*(aj[i]-bat[i]))
-        bj[i] = bj[i] - eta*(gradbt/(2*(N+1))+gamma*(bj[i]-bbt[i]))
+        #aj[i] = aj[i] - eta*(gradat/(2*(N+1))+gamma*(aj[i]-bat[i]))
+        #bj[i] = bj[i] - eta*(gradbt/(2*(N+1))+gamma*(bj[i]-bbt[i]))
+        aj[i] = (aj[i] / eta + gamma * bat[i] - gradat) / (1 / eta + gamma)
+        bj[i] = (bj[i] / eta + gamma * bbt[i] - gradbt) / (1 / eta + gamma)
         alphaj[i] = alphaj[i] + eta*gradalphat/(2*(N+1))
     
     # hessian = hesswt*np.outer(x,x)
     # eigen,_ = np.linalg.eig(hessian)
 
-    wj = wj - eta*(gradwt*FEATURES[index]*LABELS[index]/(2*(N+1)) + lam*wj + gamma*(wj - bwt))
+    #wj = wj - eta*(gradwt*FEATURES[index]*LABELS[index]/(2*(N+1)) + lam*wj + gamma*(wj - bwt))
+    wj = (wj/eta+gamma*bwt-gradwt*FEATURES[index]*LABELS[index]/(2*(N+1)))/(1 / eta + gamma+ lam)
     wj = proj(wj,L/2)
     aj = proj(aj,R1)
     bj = proj(bj,R2)
@@ -398,7 +404,7 @@ def PGSPD(t,loss,passing_list,L,R1,R2,gamma,lam,theta,c,bwt,bat,bbt,balphat):
     BBt = 0.0
     BALPHAt = 0.0
     
-    ETAt = c/(t**theta)
+    ETAt = c/(t**theta)/gamma
 
     # inner loop update at j
     for j in range(t): 
@@ -570,7 +576,7 @@ def demo(train_list,test_list,loss,alg,gamma=0.01,lam=10.0,theta=0.25,c = 10.0,W
             return WT,AT,BT,ALPHAT,roc_auc
         if t%100 == 0:
             elapsed_time = time.time() - start_time
-            print('gamma: %.2f lam: %.2f theta: %.2f c: %.2f iteration: %d AUC: %.2f time eplapsed: %.2f'
+            print('gamma: %.2f lam: %.2f theta: %.2f c: %.2f iteration: %d AUC: %.6f time eplapsed: %.2f'
                   %(gamma,lam,theta,c,t,roc_auc[t-1],elapsed_time))
             start_time = time.time()
             
@@ -646,8 +652,8 @@ def smooth(loss,alg,gamma=0.01,lam=10.0,theta=0.25,c = 10.0,WT = 0,AT = 0,BT=0,A
     Smooth output auc by averaging
     '''
     num = len(LABELS)
-    training = [i for i in range(num)]
-    testing = [i for i in range(num)]
+    training = [i for i in range(num//2)]
+    testing = [i for i in range(num//2,num)]
     WT,AT,BT,ALPHAT,roc_auc = demo(training,testing,loss,alg,gamma=gamma,lam=lam,theta=theta,c=c,WT = WT,AT = AT,BT=BT,ALPHAT=ALPHAT,t0 = t0)
     #t = np.arange(T) + 1
     #W = np.cumsum(W,axis = 0)/t[:,None]
@@ -681,7 +687,7 @@ def draw(W_h,W_l):
 if __name__ == '__main__':
 
     # Read data from hdf5 file
-    dataset = 'diabetes'
+    dataset = 'fourclass'
     i = 3
     hf = h5py.File('%s.h5' %(dataset), 'r')
     FEATURES = hf['FEATURES'][:]
@@ -690,15 +696,16 @@ if __name__ == '__main__':
 
     # Define hyper parameters
     N = 5
-    T = 2000
+    T = 1000
     batch = 1
     folders = 2
 
     # Define model parameters
-    GAMMA = [100]
-    LAM = [10]
+    GAMMA = [10]
+    LAM = [0]
     THETA = [0.5]
     C = [1]
+    S = 100
 
     # Define hyper parameters
     loss = 'hinge'
@@ -706,7 +713,7 @@ if __name__ == '__main__':
 
     run_time = time.time()
     wt,at,bt,alphat,auc = smooth(loss,alg,gamma=GAMMA[0],lam=LAM[0],theta=THETA[0],c = C[0])
-    #wt, at, bt, alphat, auc = smooth(loss, alg, gamma=GAMMA[0], lam=LAM[0], theta=THETA[0], c=C[0], t0=101, WT=wt, AT=at, BT= bt, ALPHAT=alphat)
+
     #x = gs(loss,alg,folders=folders,GAMMA=GAMMA,LAM=LAM,THETA=THETA,C=C)
 
     print('total elapsed time: %f' %(time.time() - run_time))
