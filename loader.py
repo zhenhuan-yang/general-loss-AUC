@@ -46,10 +46,10 @@ def loader(filename,i,m = True,n = True):
     return X, Y
 
 if __name__ == '__main__':
-    dataset = 'diabetes'
-    i = 3
-    FEATURES,LABELS = loader(dataset,i,m=False)
-    hf = h5py.File('%s.h5' %(dataset), 'w')
+    dataset = 'news20'
+    i = 10
+    FEATURES,LABELS = loader(dataset,i)
+    hf = h5py.File('%s_%d.h5' %(dataset,i), 'w')
     hf.create_dataset('FEATURES',data=FEATURES)
     hf.create_dataset('LABELS', data=LABELS)
     hf.close()
