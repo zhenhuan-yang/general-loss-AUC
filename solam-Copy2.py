@@ -60,6 +60,7 @@ def bound(loss,L,lam):
     
     rho = max((2*R1+R2)*Sp2/(N+1),(2*R2+R1)*Sm2/(N+1))
     gamma0_v2 = max(0,(fabs(1+(rho-lam)*(N+1))-1)/2/(N+1)+(rho-lam)/2)
+    print('gamma = %f' %gamma0_v2)
     return R1,R2,rho,gamma0_v1,gamma0_v2
 
 
@@ -68,18 +69,16 @@ def bound(loss,L,lam):
 
 def loss_func(loss,lam):
 
-    L = 0.2
-
     # define loss function
     if loss == 'hinge':
-        #L = 2*sqrt(2/lam)
+        L = 2*sqrt(2/lam)
         lo = lambda x: max(0,1+L-2*L*x)
     elif loss == 'logistic':
-        #L = 2*sqrt(2*log(2)/lam)
+        L = 2*sqrt(2*log(2)/lam)
         lo = lambda x:log(1+exp(L-2*L*x))
     else:
         print('Wrong loss function!')
-        
+    print('L = %f' %L)
     return lo,L
 
 
@@ -163,11 +162,8 @@ def neg(loss,i,prod,L):
         gfnt - negative function gradient
     '''
     minus = L/2-prod
-    #FNT = np.zeros(N+1-i)
-    #GFNT = np.zeros(N+1-i)
     fnt = 0.0
     gfnt = 0.0
-    # hfnt = 0.0
 
     for k in range(i,N+1):
         # compute forward difference
@@ -182,9 +178,6 @@ def neg(loss,i,prod,L):
         fnt += beta
         # compute gradient
         gfnt += beta*(k-i)/minus  # no xt yet!
-        
-        # compute hessian
-        # hfnt += beta*(k-i)*(k-i-1)*(L/2-prod)**(k-i-2)
 
     return fnt,gfnt
 
@@ -214,18 +207,6 @@ def w_grad(gfpt,gfnt,yt,at,bt,alphat):
     else:
         gradwt = 2*(alphat - bt)*gfnt
     return gradwt
-
-
-# In[9]:
-
-
-def w_hess(hfpt,hfnt,yt,at,bt,alphat):
-    hesswt = 0.0
-    if yt == 1:
-        hesswt = 2*(alphat - at)*hfpt
-    else:
-        hesswt = 2*(alphat - bt)*hfnt
-    return hesswt
 
 
 # In[10]:
@@ -314,25 +295,39 @@ def alpha_grad(fpt,fnt,yt,alphat):
 # In[15]:
 
 
-def split(folder,folders):
-    
-    if folder > folders:
+def split(folder, folders):
+    if folder >= folders:
         print('Exceed maximum folders!')
         return
     # load and split data
-    n,d = FEATURES.shape
+    n, d = FEATURES.shape
+
     # regular portion of each folder
-    portion = round(n/folders)
-    start = portion*folder
-    stop = portion*(folder+1)
-    if fabs(stop - n) < portion: # remainder occurs
-        train_list = [i for i in range(start)]
-        test_list = [i for i in range(start,n)]
+    portion = round(n / folders)
+    start = portion * folder
+    stop = portion * (folder + 1)
+
+    if folders == 1:
+        train_list = [i for i in range(n)]
+        test_list = [i for i in range(n)]
+
+    elif folders == 2:
+        if folder == 0:
+            train_list = [i for i in range(start)] + [i for i in range(stop, n)]
+            test_list = [i for i in range(start, stop)]
+        else:
+            train_list = [i for i in range(start)]
+            test_list = [i for i in range(start, n)]
+
     else:
-        train_list = [i for i in range(start)] + [i for i in range(stop,n)]
-        test_list = [i for i in range(start,stop)]
-        
-    return train_list,test_list
+        if fabs(stop - n) < portion:  # remainder occurs
+            train_list = [i for i in range(start)]
+            test_list = [i for i in range(start, n)]
+        else:
+            train_list = [i for i in range(start)] + [i for i in range(stop, n)]
+            test_list = [i for i in range(start, stop)]
+
+    return train_list, test_list
 
 
 # In[171]:
@@ -345,10 +340,8 @@ def prox(eta,loss,index,L,R1,R2,gamma,lam,wj,aj,bj,alphaj,bwt,bat,bbt,balphat):
     prod = np.dot(wj,FEATURES[index])
     fpt = np.zeros(N+1)
     gfpt = np.zeros(N+1)
-    # hfpt = np.zeros(N+1)
     fnt = np.zeros(N+1)
     gfnt = np.zeros(N+1)
-    # hfnt = np.zeros(N+1)
     gradwt = 0.0
     gradat = 0.0
     gradbt = 0.0
@@ -358,25 +351,21 @@ def prox(eta,loss,index,L,R1,R2,gamma,lam,wj,aj,bj,alphaj,bwt,bat,bbt,balphat):
     for i in range(N+1):
 
         fpt[i],gfpt[i] = pos(i,prod,L)
-        #print(fpt[i])
         fnt[i],gfnt[i] = neg(loss,i,prod,L)
 
-        gradwt += w_grad(gfpt[i],gfnt[i],LABELS[index],aj[i],bj[i],alphaj[i])# accumulate i
-        # hesswt += w_hess(hfpt[i],hfnt[i],y,aj[i],bj[i],alphaj[i])
+        gradwt += w_grad(gfpt[i],gfnt[i],LABELS[index],aj[i],bj[i],alphaj[i]) # accumulate i
         gradat = a_grad(fpt[i],LABELS[index],aj[i])
         gradbt = b_grad(fnt[i],LABELS[index],bj[i])
         gradalphat = alpha_grad(fpt[i],fnt[i],LABELS[index],alphaj[i])
-        #aj[i] = aj[i] - eta*(gradat/(2*(N+1))+gamma*(aj[i]-bat[i]))
-        #bj[i] = bj[i] - eta*(gradbt/(2*(N+1))+gamma*(bj[i]-bbt[i]))
-        aj[i] = (aj[i] / eta + gamma * bat[i] - gradat) / (1 / eta + gamma)
-        bj[i] = (bj[i] / eta + gamma * bbt[i] - gradbt) / (1 / eta + gamma)
+        aj[i] = aj[i] - eta*(gradat/(2*(N+1))+0*(aj[i]-bat[i]))
+        bj[i] = bj[i] - eta*(gradbt/(2*(N+1))+0*(bj[i]-bbt[i]))
+        #aj[i] = (aj[i] / eta + 0 * bat[i] - gradat/(2*(N+1))) / (1 / eta + 0)
+        #bj[i] = (bj[i] / eta + 0 * bbt[i] - gradbt/(2*(N+1))) / (1 / eta + 0)
         alphaj[i] = alphaj[i] + eta*gradalphat/(2*(N+1))
-    
-    # hessian = hesswt*np.outer(x,x)
-    # eigen,_ = np.linalg.eig(hessian)
+        #alphaj[i] = (alphaj[i]/eta + gradalphat/(2*(N+1)) + alphaj[i]/(N+1)) / (1 / eta + 1/(N+1))
 
-    #wj = wj - eta*(gradwt*FEATURES[index]*LABELS[index]/(2*(N+1)) + lam*wj + gamma*(wj - bwt))
-    wj = (wj/eta+gamma*bwt-gradwt*FEATURES[index]*LABELS[index]/(2*(N+1)))/(1 / eta + gamma+ lam)
+    wj = wj - eta*(gradwt*FEATURES[index]*LABELS[index]/(2*(N+1)) + lam*wj + gamma*(wj - bwt))
+    #wj = (wj/eta+gamma*bwt-gradwt*FEATURES[index]*LABELS[index]/(2*(N+1)))/(1 / eta + gamma + lam)
     wj = proj(wj,L/2)
     aj = proj(aj,R1)
     bj = proj(bj,R2)
@@ -484,138 +473,85 @@ def SOLAM(t,loss,batch,X,Y,L,lam,theta,c,wt,at,bt,alphat):
 # In[169]:
 
 
-def demo(train_list,test_list,loss,alg,gamma=0.01,lam=10.0,theta=0.25,c = 10.0,WT = 0,AT = 0,BT=0,ALPHAT=0,t0 = 1):
+def demo(loss, train_list, test_list, L, R1, R2, gamma=0.01, lam=10, theta=0.5, c=1):
     '''
     Run it to get results
     '''
-    # define loss function
-    lo,L = loss_func(loss,lam)
-    
-    # compute bound for a,b and alpha
-    R1,R2,_,_,_ = bound(lo,L,lam) 
-    
+
     # get dimensions of the data
     num = len(train_list)
-    _,d = FEATURES.shape
-    
+    _, d = FEATURES.shape
+
     # initialize outer loop variables
-    if WT == 0 :
-        WT = np.zeros(d) # d is the dimension of the features
-        AT = np.zeros(N+1)
-        BT = np.zeros(N+1)
-        ALPHAT = np.zeros(N+1)
-    
-    # store all variables
-    #W = np.zeros((T,d))
+    WT = np.zeros(d)  # d is the dimension of the features
+    AT = np.zeros(N + 1)
+    BT = np.zeros(N + 1)
+    ALPHAT = np.zeros(N + 1)
 
     # record auc
     roc_auc = np.zeros(T)
     # record time elapsed
     start_time = time.time()
-    
-    for t in range(t0,T+1):
-        
-        # store current WT
-        #W[t-1] = WT + 0.0
-        if alg == 'PGSPD':
-            epoch = t // num
-            begin = (t * (t - 1) // 2) % num
-            end = (t * (t + 1) // 2) % num
-            if epoch < 1:
-                if begin < end:
-                    tr_list = [i for i in range(begin, end)]
-                else:  # need to think better
-                    tr_list = [i for i in range(begin, num)] + [i for i in range(end)]
-            else:
-                if begin < end:
-                    tr_list = [i for i in range(begin, num)] + [i for i in range(num)] * (epoch - 1) + [i for i in range(end)]
-                else:
-                    tr_list = [i for i in range(begin, num)] + [i for i in range(num)] * epoch + [i for i in range(end)]
-            # shuffle(tr_list) # shuffle works in place
-            # update outer loop variables
-            WT, AT, BT, ALPHAT = PGSPD(t, lo, tr_list, L, R1, R2, gamma, lam, theta, c, WT, AT, BT, ALPHAT)
-            '''
-            if t<num:
-                begin = (t*(t-1)//2)%num
-                end = (t*(t+1)//2)%num
-                if begin < end:
-                    tr_list = [i for i in range(begin,end)]
-                else: # need to think better
-                    tr_list = [i for i in range(begin,num)] + [i for i in range(end)]
-                # print(sum(x_train))
-                #shuffle(tr_list) # shuffle works in place
-                # update outer loop variables
-                WT,AT,BT,ALPHAT = PGSPD(t,lo,tr_list,L,R1,R2,gamma,lam,theta,c,WT,AT,BT,ALPHAT)
 
-            else:
-                tr_list = [i for i in range(num)]
-                #shuffle(tr_list)
-                WT,AT,BT,ALPHAT = PGSPD(num,lo,tr_list,L,R1,R2,gamma,lam,theta,c,WT,AT,BT,ALPHAT)
-            '''
-        elif alg == 'SOLAM':
+    for t in range(1, T + 1):
 
-            # sample a point
-            begin = (t-1)*batch%num
-            end = t*batch%num
+        epoch = t // num
+        begin = (t * (t - 1) // 2) % num
+        end = (t * (t + 1) // 2) % num
+
+        if epoch < 1:
             if begin < end:
-                x_train = X_train_augmented[begin:end]
-                y_train = Y_train_augmented[begin:end]
-            else: # need to think better
-                x_train = np.append(X_train_augmented[begin:],X_train_augmented[:end],axis=0)
-                y_train = np.append(Y_train_augmented[begin:],Y_train_augmented[:end],axis=0)
-            WT,AT,BT,ALPHAT = SOLAM(t,loss,batch,x_train,y_train,L,lam,theta,c,WT,AT,BT,ALPHAT)
-        
+                tr_list = [i for i in range(begin, end)]
+            else:  # need to think better
+                tr_list = [i for i in range(begin, num)] + [i for i in range(end)]
         else:
-            print('Wrong algorithm!')
-            return
-        
+            if begin < end:
+                tr_list = [i for i in range(begin, num)] + [i for i in range(num)] * (epoch - 1) + [i for i in range(end)]
+            else:
+                tr_list = [i for i in range(begin, num)] + [i for i in range(num)] * epoch + [i for i in range(end)]
+
+        shuffle(tr_list)  # shuffle works in place
+
+        # update outer loop variables
+        WT, AT, BT, ALPHAT = PGSPD(t, loss, tr_list, L, R1, R2, gamma, lam, theta, c, WT, AT, BT, ALPHAT)
+
         try:
-            roc_auc[t-1] = roc_auc_score(LABELS[test_list], np.dot(FEATURES[test_list],WT))
+            roc_auc[t - 1] = roc_auc_score(LABELS[test_list], np.dot(FEATURES[test_list], WT))
         except ValueError:
-            print('Something is wrong bruh! Look at sum of WT: %f' %(sum(WT)))
-            return WT,AT,BT,ALPHAT,roc_auc
-        if t%100 == 0:
+            print('Something is wrong bruh! Look at sum of WT: %f' % (sum(WT)))
+            return WT, AT, BT, ALPHAT, roc_auc
+
+        if t % 100 == 0:
             elapsed_time = time.time() - start_time
             print('gamma: %.2f lam: %.2f theta: %.2f c: %.2f iteration: %d AUC: %.6f time eplapsed: %.2f'
-                  %(gamma,lam,theta,c,t,roc_auc[t-1],elapsed_time))
+                  % (gamma, lam, theta, c, t, roc_auc[t - 1], elapsed_time))
             start_time = time.time()
-            
-    return WT,AT,BT,ALPHAT,roc_auc#,W
+
+    return WT, AT, BT, ALPHAT, roc_auc
 
 
 # In[20]:
 
 
-def cv(loss,alg,folders=5,gamma=0.01,lam=10.0,theta=0.25,c=10.0):
-    '''
-    Cross validation
-    '''
-    
-    # record auc
-    AUC_ROC = np.zeros(folders)
-    
-    # cross validation
-    for folder in range(folders):
-        print('folder = %d' %(folder))
-        training,testing = split(folder,folders)
-        
-        _,roc_auc = demo(training,testing,loss,alg,gamma=gamma,lam=lam,theta=theta,c=c)
-        AUC_ROC[folder] = max(roc_auc)
-    print('auc score: %f +/- %f' %(np.mean(AUC_ROC),np.std(AUC_ROC)))
-    return AUC_ROC
+def single_run(para):
+    folder, gamma, lam, theta, c, paras = para
+    training, testing, loss = paras
 
+    # define loss function
+    lo, L = loss_func(loss, LAM[lam])
+
+    # compute bound for a,b and alpha
+    R1, R2, _, _, _ = bound(lo, L, LAM[lam])
+
+    _, _, _, _, roc_auc = demo(lo, training, testing, L, R1, R2, gamma=GAMMA[gamma], lam=LAM[lam], theta=THETA[theta],
+                               c=C[c])
+
+    return folder, gamma, lam, theta, c, roc_auc
 
 # In[21]:
 
-
-def single_run(para):
-    folder,gamma,lam,theta,c,paras = para
-    training,testing,loss,alg = paras
-    _,roc_auc = demo(training,testing,loss,alg
-                           ,gamma=GAMMA[gamma],lam=LAM[lam],theta=THETA[theta],c=C[c])
-    return folder,gamma,lam,theta,c, np.max(roc_auc)
     
-def gs(loss,alg,folders=5,GAMMA=[0.01],LAM=[10.0],THETA=[0.25],C=[10.0]):
+def gs(loss,folders=5,GAMMA=[0.01],LAM=[10.0],THETA=[0.25],C=[10.0]):
     '''
     Grid search! Wuss up fellas?!
     And we are using multiprocessing, fancy!
@@ -623,72 +559,33 @@ def gs(loss,alg,folders=5,GAMMA=[0.01],LAM=[10.0],THETA=[0.25],C=[10.0]):
     # number of cpu want to use
     num_cpus = 15
     # record auc
-    AUC_ROC = np.zeros((folders,len(GAMMA),len(LAM),len(THETA),len(C)))
+    ROC_AUC = np.zeros((folders,len(GAMMA),len(LAM),len(THETA),len(C),T))
     # record parameters
     input_paras = []
     # grid search prepare
     for folder in range(folders):
         training,testing = split(folder,folders)
-        paras = training,testing,loss,alg
+        paras = training,testing,loss
         for gamma,lam,theta,c in product(range(len(GAMMA)),range(len(LAM)),range(len(THETA)),range(len(C))):
             input_paras.append((folder,gamma,lam,theta,c,paras))
-    print('dataset: %s loss: %s algorithm: %s how many paras: %d' % (dataset,loss,alg,len(input_paras)))
+    print('dataset: %s how many paras: %d' % (dataset,len(input_paras)))
     # grid search run on multiprocessors
     with mp.Pool(processes=num_cpus) as pool:
         results_pool = pool.map(single_run,input_paras)
         pool.close()
         pool.join()
     # save results
-    for folder,gamma,lam,theta,c, auc_roc in results_pool:
-        AUC_ROC[folder,gamma,lam,theta,c] = auc_roc
-    return AUC_ROC
+    for folder,gamma,lam,theta,c, roc_auc in results_pool:
+        ROC_AUC[folder,gamma,lam,theta,c] = roc_auc
+    return ROC_AUC
 
 
-# In[117]:
-
-
-def smooth(loss,alg,gamma=0.01,lam=10.0,theta=0.25,c = 10.0,WT = 0,AT = 0,BT=0,ALPHAT=0,t0 = 1):
-    '''
-    Smooth output auc by averaging
-    '''
-    num = len(LABELS)
-    training = [i for i in range(num//2)]
-    testing = [i for i in range(num//2,num)]
-    WT,AT,BT,ALPHAT,roc_auc = demo(training,testing,loss,alg,gamma=gamma,lam=lam,theta=theta,c=c,WT = WT,AT = AT,BT=BT,ALPHAT=ALPHAT,t0 = t0)
-    #t = np.arange(T) + 1
-    #W = np.cumsum(W,axis = 0)/t[:,None]
-    
-    return WT,AT,BT,ALPHAT,roc_auc
-
-
-# In[28]:
-
-
-def draw(W_h,W_l):
-    '''
-    Plot AUC
-    '''
-    auc_h = np.zeros(T)
-    auc_l = np.zeros(T)
-    for t in range(T):
-        auc_h[t] = roc_auc_score(LABELS, np.dot(FEATURES,W_h[t]))
-        auc_l[t] = roc_auc_score(LABELS, np.dot(FEATURES,W_l[t]))
-    plt.plot(range(T),auc_h,'--',label='SAUC-H')
-    plt.plot(range(T),auc_l,'-',label='SAUC-L')
-    plt.xlabel('iterations')
-    plt.ylabel('AUC')
-    plt.legend()
-    
-    return 
-
-
-# In[ ]:
 
 if __name__ == '__main__':
 
     # Read data from hdf5 file
-    dataset = 'fourclass'
-    i = 3
+    dataset = 'splice'
+    i = 10
     hf = h5py.File('%s.h5' %(dataset), 'r')
     FEATURES = hf['FEATURES'][:]
     LABELS = hf['LABELS'][:]
@@ -696,29 +593,25 @@ if __name__ == '__main__':
 
     # Define hyper parameters
     N = 5
-    T = 1000
+    T = 500
     batch = 1
     folders = 2
 
     # Define model parameters
-    GAMMA = [10]
-    LAM = [0]
-    THETA = [0.5]
+    GAMMA = [50000]
+    LAM = [1]
+    THETA = [.5]
     C = [1]
-    S = 100
 
     # Define hyper parameters
     loss = 'hinge'
-    alg = 'PGSPD'
 
     run_time = time.time()
-    wt,at,bt,alphat,auc = smooth(loss,alg,gamma=GAMMA[0],lam=LAM[0],theta=THETA[0],c = C[0])
 
-    #x = gs(loss,alg,folders=folders,GAMMA=GAMMA,LAM=LAM,THETA=THETA,C=C)
+    x = gs(loss,folders=folders,GAMMA=GAMMA,LAM=LAM,THETA=THETA,C=C)
 
     print('total elapsed time: %f' %(time.time() - run_time))
-    plt.plot(auc)
-    plt.show()
-    #np.save('%s_%s'%(dataset,loss), x)
+
+    np.save('%s_%s'%(dataset,loss), x)
 
 
