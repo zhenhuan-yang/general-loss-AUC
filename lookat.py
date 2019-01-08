@@ -3,14 +3,18 @@ from itertools import product
 from matplotlib import pyplot as plt
 
 def compute(x):
-    folders,GAMMA,LAM,THETA,C = x.shape
+    '''
+    Compute mean and standard deviation
+    '''
+    BOUND = np.zeros((folders,LAM,C))
+    MEAN = np.zeros((LAM, C))
+    STD = np.zeros((LAM, C))
 
-    MEAN = np.zeros((GAMMA, LAM, THETA, C))
-    STD = np.zeros((GAMMA, LAM, THETA, C))
-
-    for gamma, lam, theta, c in product(range(GAMMA), range(LAM), range(THETA), range(C)):
-        MEAN[gamma, lam, theta, c] = np.mean(x[:, gamma, lam, theta, c])
-        STD[gamma, lam, theta, c] = np.std(x[:, gamma, lam, theta, c])
+    for folder,lam, c in product(range(folders),range(LAM), range(C)):
+        BOUND[folder,lam,c] = np.max(x[folder,lam,c,:])
+    for lam, c in product(range(LAM), range(C)):
+        MEAN[lam, c] = np.mean(BOUND[:,lam,c])
+        STD[lam, c] = np.std(BOUND[:,lam,c])
 
     print('Mean:')
     print(MEAN)
@@ -24,9 +28,8 @@ def draw(ROC_AUC):
     '''
     Plot AUC
     '''
-    folders, GAMMA, LAM, THETA, C, T = x.shape
-    for gamma, lam, theta, c in product(range(GAMMA), range(LAM), range(THETA), range(C)):
-        plt.plot(range(T), ROC_AUC[1, gamma, lam, theta, c], label=r'$\gamma$ = %.1f $\lambda$ = %.1f $\theta$ = %.1f c = %.1f' % (gamma,lam,theta,c))
+    for folder,lam, c in product(range(folders),range(LAM), range(C)):
+        plt.plot(range(T), ROC_AUC[folder, lam, c], label=r'folder = %d $\lambda$ = %d c = %d' % (folder,10**(lam-1),10**(c-1)))
     plt.xlabel('iterations')
     plt.ylabel('AUC')
     plt.legend()
@@ -35,7 +38,9 @@ def draw(ROC_AUC):
     return
 
 if __name__ == '__main__':
-    dataset = 'splice'
+    dataset = 'diabetes'
     loss = 'hinge'
     x = np.load('%s_%s.npy'%(dataset,loss))
+    folders, LAM, C, T = x.shape
+    compute(x)
     draw(x)
