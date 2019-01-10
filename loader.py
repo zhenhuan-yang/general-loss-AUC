@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import h5py
 
-def loader(filename,i,m = True,n = True):
+def loader(filename,i,m = True,n = True,s = False):
     '''
     Data file loader
 
@@ -14,6 +14,7 @@ def loader(filename,i,m = True,n = True):
         x - sample features
         y - sample labels
     '''
+    print('Initializing cvs reader......', end=' ')
     # raw data
     L = []
     with open(filename, 'r') as file:
@@ -21,7 +22,11 @@ def loader(filename,i,m = True,n = True):
             line[0] = '0:' + line[0]
             line = filter(None, line)  # get rid of potential empty elements
             L.append(dict(i.split(':') for i in line))
+    print('Done!')
+    print('Converting to dataframe......', end=' ')
     df = pd.DataFrame(L, dtype=float).fillna(0)
+    print('Done!')
+    print('Converting to array......', end=' ')
     X = df.iloc[:, 1:].values
     Y = df.iloc[:, 0].values
     # centralize
@@ -32,24 +37,33 @@ def loader(filename,i,m = True,n = True):
     if n == True:
         norm = np.linalg.norm(X, axis=1)
         X = X / norm[:, None]
+
     # convert to binary class
     if max(Y) == 1:
         print('binary classes already!')
     else:
         r = np.ptp(Y).astype(int)
         print('num of classes: %d' %(r+1))
-        index = np.argwhere(Y <= i)
-        INDEX = np.argwhere(Y > i)
+        index = np.argwhere(Y == i)
+        INDEX = np.argwhere(Y != i)
         Y[index] = -1
         Y[INDEX] = 1
     Y = Y.astype(int)
-    return X, Y
+
+    # shuffle
+    mask = np.arange(Y.shape[0])
+    if s == True:
+        np.random.shuffle(mask)
+    print('Done!')
+
+    return X[mask], Y[mask]
 
 if __name__ == '__main__':
-    dataset = 'news20'
-    i = 10
+    np.random.seed(2)
+    dataset = 'usps'
+    i = 1
     FEATURES,LABELS = loader(dataset,i)
-    hf = h5py.File('%s_%d.h5' %(dataset,i), 'w')
+    hf = h5py.File('%s.h5' %(dataset), 'w')
     hf.create_dataset('FEATURES',data=FEATURES)
     hf.create_dataset('LABELS', data=LABELS)
     hf.close()
