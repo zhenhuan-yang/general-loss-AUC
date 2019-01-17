@@ -13,6 +13,7 @@ from random import shuffle
 from itertools import product
 import multiprocessing as mp
 from math import fabs, sqrt, log, exp
+import pickle
 
 
 # In[134]:
@@ -55,12 +56,11 @@ def bound(loss, L, lam):
         Sm1 += beta1
         Sm2 += beta2
 
-    gammap0 = max(Sp1 + (2 * R1 + R2) * Sp2, 1 + Sp1)
-    gammam0 = max(Sm1 + (2 * R2 + R1) * Sm2, 1 + Sm1)
-    gamma0_v1 = sqrt(3) / (N + 1) * max(gammap0, gammam0)
+    rho = max((2 * R1 + R2) * Sp2, (2 * R2 + R1) * Sm2)/ (N + 1)
+    gamma0_v1 = max(0, rho - lam + 1 / (N + 1))
+    gamma0_v2 = max((2 * R1 + R2) * Sp2 + Sp1 ** 2, (2 * R2 + R1) * Sm2 + Sm1 ** 2) / (N + 1)
+    #print('R1: %.2f R2: %.2f rho: %.2f old gamma: %.2f new gamma: %.2f' %(R1,R2,rho,gamma0_v1,gamma0_v2))
 
-    rho = max((2 * R1 + R2) * Sp2 / (N + 1), (2 * R2 + R1) * Sm2 / (N + 1))
-    gamma0_v2 = max(0, rho - lam + 1 / (N + 1))
     return R1, R2, rho, gamma0_v1, gamma0_v2
 
 
@@ -384,7 +384,7 @@ def SOLAM(t, loss, index, L, R1, R2, lam, theta, c, wt, at, bt, alphat):
     return wt, at, bt, alphat
 
 
-def prox(eta, loss, index, L, R1, R2, gamma, lam, wj, aj, bj, alphaj, bwt, bat, bbt, balphat):
+def prox(eta, loss, index, L, R1, R2, gamma, lam, wj, aj, bj, alphaj, bwt, bat, bbt, balphat, complete=False):
     '''
     perform proximal guided gradient descent when receive an sample
     '''
@@ -404,8 +404,12 @@ def prox(eta, loss, index, L, R1, R2, gamma, lam, wj, aj, bj, alphaj, bwt, bat, 
         gradat = a_grad(fpt[i], LABELS[index], aj[i])
         gradbt = b_grad(fnt[i], LABELS[index], bj[i])
         gradalphat = alpha_grad(fpt[i], fnt[i], LABELS[index], alphaj[i])
-        aj[i] = aj[i] - eta * (gradat / (2 * (N + 1)) + 0 * (aj[i] - bat[i]))
-        bj[i] = bj[i] - eta * (gradbt / (2 * (N + 1)) + 0 * (bj[i] - bbt[i]))
+        if complete == True:
+            aj[i] = aj[i] - eta * (gradat / (2 * (N + 1)) + gamma * (aj[i] - bat[i]))
+            bj[i] = bj[i] - eta * (gradbt / (2 * (N + 1)) + gamma * (bj[i] - bbt[i]))
+        else:
+            aj[i] = aj[i] - eta * (gradat / (2 * (N + 1)) + 0 * (aj[i] - bat[i]))
+            bj[i] = bj[i] - eta * (gradbt / (2 * (N + 1)) + 0 * (bj[i] - bbt[i]))
         # aj[i] = (aj[i] / eta + 0 * bat[i] - gradat/(2*(N+1))) / (1 / eta + 0)
         # bj[i] = (bj[i] / eta + 0 * bbt[i] - gradbt/(2*(N+1))) / (1 / eta + 0)
         alphaj[i] = alphaj[i] + eta * gradalphat / (2 * (N + 1))
@@ -424,12 +428,13 @@ def prox(eta, loss, index, L, R1, R2, gamma, lam, wj, aj, bj, alphaj, bwt, bat, 
 # In[159]:
 
 
-def PGSPD(t, loss, passing_list, L, R1, R2, gamma, lam, theta, c, bwt, bat, bbt, balphat):
+def PGSPD(t, loss, passing_list, L, R1, R2, gamma, lam, theta, c, bwt, bat, bbt, balphat, complete=False):
     '''
     Proximally Guided Stochastic Primal Dual Algorithm
     '''
 
     # initialize inner loop variables
+
     Wt = bwt + 0.0
     At = bat + 0.0
     Bt = bbt + 0.0
@@ -446,7 +451,7 @@ def PGSPD(t, loss, passing_list, L, R1, R2, gamma, lam, theta, c, bwt, bat, bbt,
     for j in range(t):
         # update inner loop variables
         Wt, At, Bt, ALPHAt = prox(ETAt, loss, passing_list[j], L, R1, R2, gamma, lam, Wt, At, Bt, ALPHAt, bwt, bat, bbt,
-                                  balphat)
+                                  balphat, complete=complete)
 
         BWt += Wt
         BAt += At
@@ -465,7 +470,7 @@ def PGSPD(t, loss, passing_list, L, R1, R2, gamma, lam, theta, c, bwt, bat, bbt,
 # In[169]:
 
 
-def demo(loss, alg, train_list, test_list, L, R1, R2, gamma=0.01, lam=10, theta=0.5, c=1):
+def demo(loss, alg, train_list, test_list, L, R1, R2, gamma=0.01, lam=0, theta=.5, c=1, complete=False):
     '''
     Run it to get results
     '''
@@ -486,8 +491,11 @@ def demo(loss, alg, train_list, test_list, L, R1, R2, gamma=0.01, lam=10, theta=
     BT = np.random.rand(N + 1)
     ALPHAT = np.random.rand(N + 1)
     '''
+    # record average W
+    W = WT + 0.0
     # record auc
     roc_auc = np.zeros(T)
+    roc_auc_ = np.zeros(T)
     # record time elapsed
     start_time = time.time()
 
@@ -512,7 +520,7 @@ def demo(loss, alg, train_list, test_list, L, R1, R2, gamma=0.01, lam=10, theta=
             shuffle(tr_list)  # shuffle works in place
 
             # update outer loop variables
-            WT, AT, BT, ALPHAT = PGSPD(t, loss, tr_list, L, R1, R2, gamma, lam, theta, c, WT, AT, BT, ALPHAT)
+            WT, AT, BT, ALPHAT = PGSPD(t, loss, tr_list, L, R1, R2, gamma, lam, theta, c, WT, AT, BT, ALPHAT,complete=complete)
 
         elif alg == 'SOLAM':
             tr_index = (t - 1) % num
@@ -521,9 +529,11 @@ def demo(loss, alg, train_list, test_list, L, R1, R2, gamma=0.01, lam=10, theta=
         else:
             print('Wrong algorithm!')
             return
-
+        # average
+        W = ((t-1)*W + WT)/t
         try:
-            roc_auc[t - 1] = roc_auc_score(LABELS[test_list], np.dot(FEATURES[test_list], WT))
+            roc_auc[t-1] = roc_auc_score(LABELS[test_list], np.dot(FEATURES[test_list], WT))
+            roc_auc_[t - 1] = roc_auc_score(LABELS[test_list], np.dot(FEATURES[test_list], W))
         except ValueError:
             print('Something is wrong bruh! Look at sum of WT: %f' % (sum(WT)))
             return WT, AT, BT, ALPHAT, roc_auc
@@ -537,49 +547,59 @@ def demo(loss, alg, train_list, test_list, L, R1, R2, gamma=0.01, lam=10, theta=
     return WT, AT, BT, ALPHAT, roc_auc
 
 
-def test_run(loss, alg, lam=10, c=1):
+def test_run(loss, alg, slices, l=2, lam=0, c=1):
     '''
     If something is wrong in gs
     Try run this first
+    Or serve as a program to test gamma
     '''
 
     num = len(LABELS)
-    training = [i for i in range(num)]
-    testing = [i for i in range(num)]
+    training = [i for i in range(num//2)]
+    testing = [i for i in range(num//2,num)]
 
     # define loss function
-    lo, L = loss_func(loss, lam)
+    lo = loss_func(loss, l)
 
     # compute bound for a,b and alpha
-    R1, R2, _, _, gamma = bound(lo, L, lam)
+    R1, R2, _, _, _ = bound(lo, l, lam)
 
-    _, _, _, _, roc_auc = demo(lo, alg, training, testing, L, R1, R2, gamma=gamma, lam=lam, c=c)
+    ROC_AUC = np.zeros(len(slices))
+    ROC_AUC_dict = {}
 
-    return roc_auc
+    for i,slice in enumerate(slices):
+        _, _, _, _, roc_auc = demo(lo, alg, training, testing, l, R1, R2, gamma=slice, lam=lam, c=c)
+        ROC_AUC[i] = np.max(roc_auc)
+        ROC_AUC_dict[slice] = np.max(roc_auc)
+    return ROC_AUC,ROC_AUC_dict
 
 
 # In[20]:
 
 
 def single_run(para):
-    folder, loss, alg, l, lam, c, paras = para
+    folder, loss, alg, l, lam, c, complete, paras = para
     training, testing = paras
 
     # define loss function
     lo = loss_func(LOSS[loss], L[l])
 
     # compute bound for a,b and alpha
-    R1, R2, _, _, gamma = bound(lo, L[l], LAM[lam])
+    R1, R2, _, gamma0_v1, gamma0_v2 = bound(lo, L[l], LAM[lam])
+    if COMPLETE[complete] == True:
+        _, _, _, _, roc_auc = demo(lo, ALG[alg], training, testing, L[l], R1, R2, gamma=gamma0_v1, lam=LAM[lam], c=C[c],
+                                   complete=COMPLETE[complete])
+    else:
+        _, _, _, _, roc_auc = demo(lo, ALG[alg], training, testing, L[l], R1, R2, gamma=gamma0_v2, lam=LAM[lam], c=C[c],
+                                   complete=COMPLETE[complete])
 
-    _, _, _, _, roc_auc = demo(lo, ALG[alg], training, testing, L[l], R1, R2, gamma=gamma + 1, lam=LAM[lam], c=C[c])
-
-    return folder, loss, alg, l, lam, c, roc_auc
+    return folder, loss, alg, l, lam, c, complete, roc_auc
 
 
 # In[21]:
 
 
-def gs(LOSS, ALG, folders=5, L = [2], LAM=[10.0], C=[10.0]):
+def gs(LOSS, ALG, folders=5, L = [2], LAM=[10.0], C=[10.0],COMPLETE=[False]):
     '''
     Grid search! Wuss up fellas?!
     And we are using multiprocessing, fancy!
@@ -587,15 +607,17 @@ def gs(LOSS, ALG, folders=5, L = [2], LAM=[10.0], C=[10.0]):
     # number of cpu want to use
     num_cpus = 15
     # record auc
-    ROC_AUC = np.zeros((folders, len(LOSS), len(ALG), len(L), len(LAM), len(C), T))
+    ROC_AUC = np.zeros((folders, len(LOSS), len(ALG), len(L), len(LAM), len(C),len(COMPLETE), T))
+    ROC_AUC_dict = {}
     # record parameters
     input_paras = []
     # grid search prepare
     for folder in range(folders):
         training, testing = split(folder, folders)
         paras = training, testing
-        for loss, alg, l, lam, c in product(range(len(LOSS)), range(len(ALG)), range(len(L)), range(len(LAM)), range(len(C))):
-            input_paras.append((folder, loss, alg, l, lam, c, paras))
+        for loss, alg, l, lam, c, complete in product(range(len(LOSS)), range(len(ALG)), range(len(L)), range(len(LAM)),
+                                                      range(len(C)), range(len(COMPLETE))):
+            input_paras.append((folder, loss, alg, l, lam, c, complete, paras))
     print('how many paras: %d' % (len(input_paras)))
     # grid search run on multiprocessors
     with mp.Pool(processes=num_cpus) as pool:
@@ -603,45 +625,51 @@ def gs(LOSS, ALG, folders=5, L = [2], LAM=[10.0], C=[10.0]):
         pool.close()
         pool.join()
     # save results
-    for folder, loss, alg, l, lam, c, roc_auc in results_pool:
-        ROC_AUC[folder, loss, alg, l, lam, c] = roc_auc
-    return ROC_AUC
+    for folder, loss, alg, l, lam, c, complete, roc_auc in results_pool:
+        ROC_AUC[folder, loss, alg, l, lam, c, complete] = roc_auc
+        ROC_AUC_dict[(folder,LOSS[loss],ALG[alg],L[l],LAM[lam],C[c],COMPLETE[complete])] = roc_auc
+    return ROC_AUC,ROC_AUC_dict
+
 
 
 if __name__ == '__main__':
     # Fix a random seed
-    np.random.seed(1)
+    #np.random.seed(1)
 
     # Read data from hdf5 file
-    dataset = 'covtype'
+    dataset = 'ijcnn1'
     hf = h5py.File('%s.h5' % (dataset), 'r')
     FEATURES = hf['FEATURES'][:]
     LABELS = hf['LABELS'][:]
     hf.close()
 
     # Define hyper parameters
-    N = 5
-    T = 200
-    folders = 5
+    N = 3
+    T = 1000
+    folders = 1
 
     # Define model parameters
-    L = [0.2,2,20]
+    L = [2]
     LAM = [0]
     C = [1]
 
+
     # Define hyper parameters
-    LOSS = ['hinge']
+    LOSS = ['hinge','logistic']
     ALG = ['PGSPD']
+    COMPLETE = [False]
 
     print('dataset: %s' % (dataset))
 
     run_time = time.time()
 
-    x = gs(LOSS, ALG, folders=folders, L=L, LAM=LAM, C=C)
-    # x = test_run(loss,alg)
+    x,x_dict = gs(LOSS, ALG, folders=folders, L=L, LAM=LAM, C=C, COMPLETE=COMPLETE)
+    #x,x_dict = test_run('hinge', 'PGSPD', slices)
 
     print('total elapsed time: %f' % (time.time() - run_time))
 
-    np.save('%s' % (dataset), x)
+    with open('%s_table.p' % (dataset), 'wb') as table:
+        pickle.dump(x,table)
 
-
+    with open('%s_plot.p' % (dataset), 'wb') as plot:
+        pickle.dump(x_dict, plot)
