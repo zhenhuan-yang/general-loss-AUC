@@ -59,10 +59,10 @@ def loader(filename,i,m = True,n = True,s = False):
     return X[mask], Y[mask]
 
 if __name__ == '__main__':
-    np.random.seed(2)
-    dataset = 'usps'
-    i = 1
-    FEATURES,LABELS = loader(dataset,i)
+    #np.random.seed(4)
+    dataset = 'ijcnn1'
+    i = 3
+    FEATURES,LABELS = loader(dataset,i,s=True)
     hf = h5py.File('%s.h5' %(dataset), 'w')
     hf.create_dataset('FEATURES',data=FEATURES)
     hf.create_dataset('LABELS', data=LABELS)

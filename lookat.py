@@ -1,20 +1,22 @@
 import numpy as np
 from itertools import product
 from matplotlib import pyplot as plt
+import pickle
 
 def compute(x):
     '''
     Compute mean and standard deviation
     '''
-    BOUND = np.zeros((folders,LOSS,ALG,L,LAM,C))
-    MEAN = np.zeros((LOSS,ALG,L,LAM, C))
-    STD = np.zeros((LOSS,ALG,L,LAM, C))
+    BOUND = np.zeros((folders,LOSS,ALG,L,LAM,C,COMPLETE))
+    MEAN = np.zeros((LOSS,ALG,L,LAM,C,COMPLETE))
+    STD = np.zeros((LOSS,ALG,L,LAM,C,COMPLETE))
 
-    for folder,loss,alg,l,lam, c in product(range(folders),range(LOSS),range(ALG),range(L),range(LAM), range(C)):
-        BOUND[folder,loss,alg,l,lam,c] = np.max(x[folder,loss,alg,l,lam,c,:])
-    for loss,alg,l,lam, c in product(range(LOSS),range(ALG),range(L),range(LAM), range(C)):
-        MEAN[loss,alg,l,lam, c] = np.mean(BOUND[:,loss,alg,l,lam,c])
-        STD[loss,alg,l,lam, c] = np.std(BOUND[:,loss,alg,l,lam,c])
+    for folder,loss,alg,l,lam,c,complete in product(range(folders),range(LOSS),range(ALG),range(L),range(LAM),range(C),
+                                                    range(COMPLETE)):
+        BOUND[folder,loss,alg,l,lam,c,complete] = np.max(x[folder,loss,alg,l,lam,c,complete,:])
+    for loss,alg,l,lam,c,complete in product(range(LOSS),range(ALG),range(L),range(LAM), range(C),range(COMPLETE)):
+        MEAN[loss,alg,l,lam,c,complete] = np.mean(BOUND[:,loss,alg,l,lam,c,complete])
+        STD[loss,alg,l,lam, c,complete] = np.std(BOUND[:,loss,alg,l,lam,c,complete])
 
     print('Mean:')
     print(MEAN)
@@ -24,22 +26,33 @@ def compute(x):
     return
 
 
-def draw(ROC_AUC):
+def draw(x_dict):
     '''
     Plot AUC
     '''
-    for folder,loss,alg,l,lam, c in product(range(folders),range(LOSS),range(ALG),range(L),range(LAM), range(C)):
-        plt.plot(range(T), ROC_AUC[folder, loss, alg, l, lam, c], label=r'folder = %d loss = %d alg = %d l = %d $\lambda$ = %d c = %d' % (folder,loss,alg,l,lam,c))
+    handle = ['r-','b--']
+    for i,(key,value) in enumerate(x_dict.items()):
+        if key[-1] == True:
+            plt.plot(range(T), value, handle[i], LineWidth = 2, label=key[1]) # +r'+$\frac{\gamma}{2}||\mathbf{v} - \bar\mathbf{{v}}||^2$')
+        else:
+            plt.plot(range(T), value, handle[i], LineWidth = 2, label=key[1]) # + r'+$\frac{\gamma}{2}||\mathbf{w} - \bar{\mathbf{w}}||^2$')
     plt.xlabel('iterations')
     plt.ylabel('AUC')
-    plt.legend()
+    plt.ylim(.80,.95)
+    plt.legend(loc='lower right',prop={'size': 12})
     plt.show()
 
     return
 
 if __name__ == '__main__':
-    dataset = 'covtype'
-    x = np.load('%s.npy'%(dataset))
-    folders, LOSS, ALG, L, LAM, C, T = x.shape
+    dataset = 'ijcnn1'
+    with open('%s_table.p' % (dataset), 'rb') as table:
+        x = pickle.load(table)
+
+    with open('%s_plot.p' % (dataset), 'rb') as plot:
+        x_dict = pickle.load(plot)
+
+    folders, LOSS, ALG, L, LAM, C, COMPLETE, T = x.shape
+
     compute(x)
-    draw(x)
+    draw(x_dict)
