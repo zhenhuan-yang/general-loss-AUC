@@ -60,7 +60,7 @@ def split(folder,folders):
 if __name__ == '__main__':
 
     # Read data from hdf5 file
-    dataset = 'covtype'
+    dataset = 'mnist'
     hf = h5py.File('/Users/yangzhenhuan/PycharmProjects/AUC/datasets/%s.h5' % (dataset), 'r')
     FEATURES = hf['FEATURES'][:]
     LABELS = hf['LABELS'][:]
@@ -68,17 +68,19 @@ if __name__ == '__main__':
 
     # Define hyper parameters
     N = 3
-    T = 500
+    T = 200
     folders = 2
+    stamp = 10
+    iteration = list(range(T//stamp))
 
     # Define model parameters
     L = [1]
-    C = [1]
+    C = [10]
     Np = [100]
     Nn = [100]
 
     # Define losses and algorithms
-    NAME = ['hinge']
+    NAME = ['logistic']
     ALG = ['SAUC','OAM']
     OPTION = ['sequential','gradient']
 
@@ -88,14 +90,21 @@ if __name__ == '__main__':
     testing = [i for i in range(n // 2, n)]
 
     # Prepare results
-    sauc_time,sauc_auc = SAUC.SAUC(T,NAME[0],N,L[0],C[0],FEATURES[training],LABELS[training],FEATURES[testing],LABELS[testing])
-    oam_time,oam_auc = OAM.OAM(T,NAME[0],OPTION[0],C[0],Np[0],Nn[0],FEATURES[training],LABELS[training],FEATURES[testing],LABELS[testing])
+    sauc_time,sauc_auc = SAUC.SAUC(T,NAME[0],N,L[0],C[0],FEATURES[training],LABELS[training],FEATURES[testing],LABELS[testing],stamp = stamp)
+    oam_time,oam_auc = OAM.OAM(T,NAME[0],OPTION[0],C[0],Np[0],Nn[0],FEATURES[training],LABELS[training],FEATURES[testing],LABELS[testing],stamp = stamp)
 
+    # Plot results
     fig = plt.figure()  # create a figure object
-    ax = fig.add_subplot(1, 1, 1)
-    ax.plot(sauc_time, sauc_auc, label='SAUC')
-    ax.plot(oam_time, oam_auc, label='OAM')
-    ax.set_xlabel('Time')
-    ax.set_ylabel('AUC')
+    ax1 = fig.add_subplot(2, 1, 1)
+    ax1.plot(sauc_time, sauc_auc, label='SAUC')
+    ax1.plot(oam_time, oam_auc, label='OAM')
+    ax1.set_xlabel('Time')
+    ax1.set_ylabel('AUC')
+    plt.legend()
+    ax2 = fig.add_subplot(2, 1, 2)
+    ax2.plot(iteration, sauc_auc, label='SAUC')
+    ax2.plot(iteration, oam_auc, label='OAM')
+    ax2.set_xlabel('Iteration')
+    ax2.set_ylabel('AUC')
     plt.legend()
     plt.show()

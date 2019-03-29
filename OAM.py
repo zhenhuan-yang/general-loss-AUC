@@ -49,7 +49,7 @@ def reservior(Bt,xt,N,M):
     if L < N:
         Bt.append(xt)
     else:
-        z = np.random.binomial(1, p=M/N)
+        z = np.random.binomial(1, p=N/M)
         if z == 1:
             ind = np.random.randint(L)
             Bt[ind] = xt
@@ -103,7 +103,7 @@ def gra(wt,xt,yt,B,ct):
 
     return wt
 
-def OAM(T,name,option,c,Np,Nn,Xtr,Ytr,Xte,Yte):
+def OAM(T,name,option,c,Np,Nn,Xtr,Ytr,Xte,Yte,stamp = 10):
     '''
     Online AUC Maximization
 
@@ -118,6 +118,7 @@ def OAM(T,name,option,c,Np,Nn,Xtr,Ytr,Xte,Yte):
         Ytr -
         Xte -
         Yte -
+        stamp - record stamp
 
     output:
         elapsed_time -
@@ -145,7 +146,7 @@ def OAM(T,name,option,c,Np,Nn,Xtr,Ytr,Xte,Yte):
     elapsed_time = []
     start_time = time.time()
 
-    for t in range(T):
+    for t in range(1,T+1):
         if Ytr[t%n] == 1:
             Npt += 1
             ct = c*max(1,Nnt/Nn)
@@ -173,5 +174,7 @@ def OAM(T,name,option,c,Np,Nn,Xtr,Ytr,Xte,Yte):
             elapsed_time.append(time.time() - start_time)
             roc_auc.append(roc_auc_score(Yte, np.dot(Xte, wt)))
             print('c: %.2f iteration: %d AUC: %.6f time eplapsed: %.2f' % (c, t, roc_auc[-1], elapsed_time[-1]))
+
+            # start_time = time.time()
 
     return elapsed_time, roc_auc

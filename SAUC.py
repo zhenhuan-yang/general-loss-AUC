@@ -62,7 +62,7 @@ def bound(N, loss, L):
 
     return R1, R2, gamma
 
-def loss_func(name, L):
+def bern_loss_func(name, L):
 
     '''
     Define loss function
@@ -176,7 +176,7 @@ def proj(x, R):
         R - radius
 
     output:
-        proj - projected wt
+        proj - projected
     '''
     norm = np.linalg.norm(x)
     if norm > R:
@@ -247,6 +247,7 @@ def prox(N, eta, loss, index, X, Y, L, R1, R2, gamma, wj, aj, bj, alphaj, bwt):
     perform proximal guided gradient descent when receive an sample
 
     input:
+        N -
         eta - step size
         loss - loss function
         index -
@@ -256,8 +257,11 @@ def prox(N, eta, loss, index, X, Y, L, R1, R2, gamma, wj, aj, bj, alphaj, bwt):
         R1 -
         R2 -
         gamma -
-        lam -
-        wj
+        wj -
+        aj -
+        bj -
+        alphaj -
+        bwt -
 
     output:
         wj - w at jth step
@@ -301,15 +305,16 @@ def PGSPD(N, t, loss, passing_list, X, Y, L, R1, R2, gamma, c, bwt, bat, bbt, ba
     Proximally Guided Stochastic Primal Dual Inner loop
 
     input:
+        N -
         t - iteration at t
         loss - loss function
-        x -
-        y -
+        passing_list
+        X -
+        Y -
         L -
         R1 -
         R2 -
         gamma -
-        theta -
         c -
         bwt - last outer loop w
         bat - last outer loop a
@@ -354,7 +359,7 @@ def PGSPD(N, t, loss, passing_list, X, Y, L, R1, R2, gamma, c, bwt, bat, bbt, ba
 
     return bwt, bat, bbt, balphat
 
-def SAUC(T,name,N,L,c,Xtr,Ytr,Xte,Yte):
+def SAUC(T,name,N,L,c,Xtr,Ytr,Xte,Yte,stamp = 10):
     '''
     Stochastic AUC Optimization with General Loss
 
@@ -368,6 +373,7 @@ def SAUC(T,name,N,L,c,Xtr,Ytr,Xte,Yte):
         Ytr - Training labels
         Xte - Testing features
         Yte - Testing labels
+        stamp - record stamp
 
     output:
         elapsed_time -
@@ -385,7 +391,7 @@ def SAUC(T,name,N,L,c,Xtr,Ytr,Xte,Yte):
     ALPHAT = np.zeros(N + 1)
 
     # define loss function
-    loss = loss_func(name, L)
+    loss = bern_loss_func(name, L)
 
     # compute gamma
     R1, R2, gamma = bound(N,loss,L)
@@ -420,12 +426,12 @@ def SAUC(T,name,N,L,c,Xtr,Ytr,Xte,Yte):
         # Inner loop
         WT, AT, BT, ALPHAT = PGSPD(N, t, loss, tr_list, Xtr, Ytr, L, R1, R2, gamma, c, WT, AT, BT, ALPHAT)
 
-        if t % 10 == 0:
+        if t % stamp == 0:
             elapsed_time.append(time.time() - start_time - sum_time)
             roc_auc.append(roc_auc_score(Yte, np.dot(Xte, WT)))
             print('gamma: %.2f c: %.2f iteration: %d AUC: %.6f time eplapsed: %.2f' % (gamma, c, t, roc_auc[-1], elapsed_time[-1]))
 
             sum_time = 0.0
-            start_time = time.time()
+            # start_time = time.time()
 
     return elapsed_time, roc_auc
