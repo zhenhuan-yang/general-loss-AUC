@@ -80,7 +80,7 @@ if __name__ == '__main__':
     Nn = [100]
 
     # Define losses and algorithms
-    NAME = ['logistic']
+    NAME = ['hinge','logistic']
     ALG = ['SAUC','OAM']
     OPTION = ['sequential','gradient']
 
@@ -90,8 +90,17 @@ if __name__ == '__main__':
     testing = [i for i in range(n // 2, n)]
 
     # Prepare results
-    sauc_time,sauc_auc = SAUC.SAUC(T,NAME[0],N,L[0],C[0],FEATURES[training],LABELS[training],FEATURES[testing],LABELS[testing],stamp = stamp)
-    oam_time,oam_auc = OAM.OAM(T,NAME[0],OPTION[0],C[0],Np[0],Nn[0],FEATURES[training],LABELS[training],FEATURES[testing],LABELS[testing],stamp = stamp)
+    res = {}
+    for name in NAME:
+        for alg in ALG:
+            if alg == 'SAUC':
+                res[(name, alg)] = SAUC(T, name, N, L[0], C[0], FEATURES[training], LABELS[training], FEATURES[testing],
+                                        LABELS[testing], stamp=stamp)
+            else:
+                for option in OPTION:
+                    res[(name, alg + '_' + option)] = OAM(T, name, option, C[0], Np[0], Nn[0], FEATURES[training],
+                                                          LABELS[training], FEATURES[testing], LABELS[testing],
+                                                          stamp=stamp)
 
     # Plot results
     fig = plt.figure()  # create a figure object
