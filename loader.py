@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import h5py
 
-def loader(filename,i,m = True,n = True,s = False):
+def loader(filename,i,n = True,f = False,z = False,m = True,s = False):
     '''
     Data file loader
 
@@ -27,16 +27,30 @@ def loader(filename,i,m = True,n = True,s = False):
     df = pd.DataFrame(L, dtype=float).fillna(0)
     print('Done!')
     print('Converting to array......', end=' ')
-    X = df.iloc[:, 1:].values
-    Y = df.iloc[:, 0].values
+    X = df.iloc[:1000, 1:].values
+    Y = df.iloc[:1000, 0].values
+
     # centralize
     if m == True:
         mean = np.mean(X, axis=1)
         X = (X.transpose() - mean).transpose()
+
     # normalize
     if n == True:
         norm = np.linalg.norm(X, axis=1)
         X = X / norm[:, None]
+
+    # feature scaling
+    if f == True:
+        mi = np.min(X,axis=1)
+        ma = np.max(X,axis=1)
+        X = (X - mi[:, None]) / (ma[:, None] - mi[:, None])
+
+    # z-sccore
+    if z == True:
+        me = np.mean(X,axis=1)
+        st = np.std(X,axis=1)
+        X = (X - me[:, None]) / st[:,None]
 
     # convert to binary class
     if max(Y) == 1:
@@ -62,7 +76,7 @@ if __name__ == '__main__':
     #np.random.seed(4)
     dataset = 'ijcnn1'
     i = 3
-    FEATURES,LABELS = loader(dataset,i,s=True)
+    FEATURES,LABELS = loader(dataset,i)
     hf = h5py.File('%s.h5' %(dataset), 'w')
     hf.create_dataset('FEATURES',data=FEATURES)
     hf.create_dataset('LABELS', data=LABELS)
