@@ -75,7 +75,10 @@ def seq(loss,wt,xt,yt,B,ct):
     for i in range(L):
         prod = np.inner(wt,xt - B[i])
         norm = np.inner(xt - B[i],xt - B[i])
-        tau = min(ct/2,loss(prod*yt)/norm)
+        if norm == 0:
+            tau == ct/2
+        else:
+            tau = min(ct/2,loss(prod*yt)/norm)
         wt += tau*yt*(xt - B[i])
 
     return wt
@@ -103,7 +106,7 @@ def gra(wt,xt,yt,B,ct):
 
     return wt
 
-def OAM(T,name,option,c,Np,Nn,Xtr,Ytr,Xte,Yte,stamp = 10):
+def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
     '''
     Online AUC Maximization
 
@@ -125,7 +128,15 @@ def OAM(T,name,option,c,Np,Nn,Xtr,Ytr,Xte,Yte,stamp = 10):
         roc_auc - auc scores
     '''
 
-    print('OAM......')
+    # load parameter
+    T = options['T']
+    name = options['name']
+    option = options['option']
+    Np = options['Np']
+    Nn = options['Nn']
+    c = options['c']
+
+    print('OAM with loss = %s option = %s Np = %d Nn = %d c = %.2f' %(name,option,Np,Nn,c))
 
     # get the dimension of what we are working with
     n, d = Xtr.shape
@@ -139,6 +150,10 @@ def OAM(T,name,option,c,Np,Nn,Xtr,Ytr,Xte,Yte,stamp = 10):
     Bnt = []
     Npt = 0
     Nnt = 0
+
+    # restore average wt
+    avgwt = wt+0.0
+
     # record auc
     roc_auc = []
 
@@ -170,11 +185,13 @@ def OAM(T,name,option,c,Np,Nn,Xtr,Ytr,Xte,Yte,stamp = 10):
                 print('Wrong update option!')
                 return
 
-        if t % 10 == 0:
-            elapsed_time.append(time.time() - start_time)
-            roc_auc.append(roc_auc_score(Yte, np.dot(Xte, wt)))
-            print('c: %.2f iteration: %d AUC: %.6f time eplapsed: %.2f' % (c, t, roc_auc[-1], elapsed_time[-1]))
+        # write results
+        elapsed_time.append(time.time() - start_time)
+        avgwt = ((t-1)*avgwt + wt) / t
+        roc_auc.append(roc_auc_score(Yte, np.dot(Xte, avgwt)))
 
-            # start_time = time.time()
+        # running log
+        if t % stamp == 0:
+            print('iteration: %d AUC: %.6f time eplapsed: %.2f' % (t, roc_auc[-1], elapsed_time[-1]))
 
     return elapsed_time, roc_auc

@@ -1,8 +1,8 @@
 '''
-One Pass AUC Maximization by Gao et al
+Stochastic Online AUC Maximization
 '''
 
-def OPAUC(Xtr, Ytr, Xte, Yte, options):
+def SOLAM(Xtr, Ytr, Xte, Yte, options):
     elapsed_time = []
     roc_auc = []
 

@@ -37,8 +37,6 @@ def gradF(prod,at,bt,alphat,pt,y):
 
     return gradwt,gradat,gradbt,gradalphat
 
-def 
-
 
 def PDSG(w,a,b,alpha,r,D,eta,R,kappa,passing_list,X,Y):
 
