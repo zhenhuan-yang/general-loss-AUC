@@ -1,8 +1,6 @@
 '''
 Stochastic AUC Optimization with General Loss by Yang et al
-
 Author: Zhenhuan(Neyo) Yang
-
 Date: 4/2/19
 '''
 
@@ -13,7 +11,6 @@ from math import sqrt,log,floor
 def gradF(prod,at,bt,alphat,pt,y):
     '''
     Compute gradient
-
     input:
         a -
         b -
@@ -21,7 +18,6 @@ def gradF(prod,at,bt,alphat,pt,y):
         p -
         prod -
         y -
-
     output:
         gradwt -
         gradat -
@@ -37,12 +33,86 @@ def gradF(prod,at,bt,alphat,pt,y):
 
     return gradwt,gradat,gradbt,gradalphat
 
+def proj_l1(v,R):
+    '''
+    Efficient Projections onto the l1-Ball for Learning in High Dimensions
+    Duchi et al.
+
+    input:
+        v -
+        R - radius
+
+    output:
+        w -
+    '''
+    n = len(v)
+
+    # initialize
+    U = list(range(n))
+    s = 0
+    rho = 0
+
+    # update
+    while U:
+        k = np.random.choice(U)
+        # partition
+        G = [j for j in U if v[j]>=v[k]]
+        L = [j for j in U if v[j]<v[k]]
+
+        # calculate
+        delta_rho = len(G)
+        delta_s = sum(v[G])
+
+        if (s+delta_s) - (rho+delta_rho)*v[k] < R:
+            s += delta_s
+            p += delta_rho
+            U = L + []
+        else:
+            U = G.pop(k)
+
+    # set
+    theta = (s-R)/rho
+
+    # output
+    w = np.maximum(v - theta,0)
+
+    return w
+
+def proj_l2(v,o,R):
+    '''
+    Projection onto eccentric l2 ball
+
+    input:
+        v -
+        o - center
+        R - radius
+
+    output:
+        w - projected
+    '''
+    norm = np.linalg.norm(v-o)
+    w = (v-o) / norm * R + o
+
+    return w
+
+
+def alt_proj(v,R):
+    '''
+    Alternating Projection Algorithm
+
+    input:
+        v -
+        R - radius
+
+    output:
+        w -
+    '''
+    return 
 
 def PDSG(w,a,b,alpha,r,D,eta,R,kappa,passing_list,X,Y):
 
     '''
     Primal dual stochastic gradient
-
     input:
         w -
         a -
@@ -54,9 +124,7 @@ def PDSG(w,a,b,alpha,r,D,eta,R,kappa,passing_list,X,Y):
         passing_list -
         X -
         Y -
-
     output:
-
     '''
 
     T = len(passing_list)
@@ -121,7 +189,6 @@ def PDSG(w,a,b,alpha,r,D,eta,R,kappa,passing_list,X,Y):
 def FSAUC(n,R,c,Xtr,Ytr,Xte,Yte,stamp = 10):
     '''
     Fast Stochastic AUC Maximization
-
     input:
         n - total iteration
         R -
@@ -131,7 +198,6 @@ def FSAUC(n,R,c,Xtr,Ytr,Xte,Yte,stamp = 10):
         Xte -
         Yte -
         stamp - record stamp
-
     output:
         Wt -
     '''
