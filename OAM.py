@@ -1,8 +1,6 @@
 '''
 Online AUC Maximization by Zhao et al
-
 Author: Zhenhuan(Neyo) Yang
-
 Date: 3/21/19
 '''
 
@@ -14,10 +12,8 @@ from sklearn.metrics import roc_auc_score
 def loss_func(name):
     '''
     Define loss function
-
     input:
         name - name of loss function
-
     output:
         loss - loss function
     '''
@@ -34,13 +30,11 @@ def loss_func(name):
 def reservior(Bt,xt,N,M):
     '''
     Reservior Sampling
-
     input:
         Bt - current buffer
         xt - a training instance
         N - the buffer size
         M - the number of instances received till trial t
-
     output:
         Bt - updated buffer
     '''
@@ -59,7 +53,6 @@ def reservior(Bt,xt,N,M):
 def seq(loss,wt,xt,yt,B,ct):
     '''
     Sequential update
-
     input:
         grad - gradient of loss function
         wt - the current classifier
@@ -67,7 +60,6 @@ def seq(loss,wt,xt,yt,B,ct):
         yt -
         B - the buffer to be compared to
         ct - a parameter that weights the comparison
-
     output:
         wt - th updated classifier
     '''
@@ -86,14 +78,12 @@ def seq(loss,wt,xt,yt,B,ct):
 def gra(wt,xt,yt,B,ct):
     '''
     gradient updating
-
     input:
         wt - the current classifier
         xt -
         yt -
         B - the bufferto be compared to
         ct - a parameter that weights the comparison
-
     output:
         wt - th updated classifier
     '''
@@ -109,7 +99,6 @@ def gra(wt,xt,yt,B,ct):
 def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
     '''
     Online AUC Maximization
-
     input:
         T -
         name -
@@ -122,7 +111,6 @@ def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
         Xte -
         Yte -
         stamp - record stamp
-
     output:
         elapsed_time -
         roc_auc - auc scores
@@ -132,11 +120,12 @@ def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
     T = options['T']
     name = options['name']
     option = options['option']
+    sampling = options['sampling']
     Np = options['Np']
     Nn = options['Nn']
     c = options['c']
 
-    print('OAM with loss = %s option = %s Np = %d Nn = %d c = %.2f' %(name,option,Np,Nn,c))
+    print('OAM with loss = %s sampling = %s option = %s Np = %d Nn = %d c = %.2f' %(name,sampling,option,Np,Nn,c))
 
     # get the dimension of what we are working with
     n, d = Xtr.shape
@@ -164,8 +153,15 @@ def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
     for t in range(1,T+1):
         if Ytr[t%n] == 1:
             Npt += 1
-            ct = c*max(1,Nnt/Nn)
-            Bpt = reservior(Bpt,Xtr[t%n],Np,Npt)
+            if sampling == 'reservoir':
+                ct = c*max(1,Nnt/Nn)
+                Bpt = reservior(Bpt,Xtr[t%n],Np,Npt)
+            elif sampling == 'sequential':
+                ct = c
+                Bpt.append(Xtr[t%n])
+            else:
+                print('wrong sampling option!')
+                return
             if option == 'sequential':
                 wt = seq(loss,wt,Xtr[t%n],Ytr[t%n],Bnt,ct)
             elif option == 'gradient':
@@ -175,8 +171,15 @@ def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
                 return
         else:
             Nnt += 1
-            ct = c*max(1,Npt/Np)
-            Bnt = reservior(Bnt,Xtr[t%n],Nn,Nnt)
+            if sampling == 'reservoir':
+                ct = c*max(1,Npt/Np)
+                Bnt = reservior(Bnt,Xtr[t%n],Nn,Nnt)
+            elif sampling == 'sequential':
+                ct = c
+                Bnt.append(Xtr[t%n])
+            else:
+                print('Wrong sampling option!')
+                return
             if option == 'sequential':
                 wt = seq(loss,wt,Xtr[t%n],Ytr[t%n],Bpt,ct)
             elif option == 'gradient':

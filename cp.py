@@ -4,7 +4,6 @@ Convergence plot
 Author: Zhenhuan(Neyo) Yang
 '''
 
-import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 from SAUC import SAUC
@@ -14,23 +13,23 @@ if __name__ == '__main__':
 
     # Define hyper parameters
     options = {}
-    options['N'] = 10
+    options['N'] = 5
     options['name'] = 'hinge'
     options['option'] = 'sequential'
-    options['sampling'] = 'sequential'
+    options['sampling'] = 'reservoir'
 
     # Define model parameter
-    options['L'] = 2
-    options['c'] = .1
+    options['L'] = 10
+    options['c'] = 1
     options['Np'] = 10000
     options['Nn'] = 10000
-    options['B'] = 1000
+    options['B'] = 2000
 
     # Define what to run this time
-    dataset = 'a9a'
+    dataset = 'sonar_scale'
     ALG = ['SAUC', 'OAM']
 
-    hf = h5py.File('/home/neyo/PycharmProjects/AUC/datasets/%s.h5' % (dataset), 'r')
+    hf = h5py.File('/Users/yangzhenhuan/PycharmProjects/AUC/datasets/%s.h5' % (dataset), 'r')
     FEATURES = hf['FEATURES'][:]
     LABELS = hf['LABELS'][:]
     hf.close()
@@ -44,14 +43,14 @@ if __name__ == '__main__':
     res = {}
     for alg in ALG:
         if alg == 'SAUC':
-            options['T'] = 100
+            options['T'] = 500
             res[alg] = SAUC(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
         else:
-            options['T'] = 1000
+            options['T'] = 1500
             res[alg] = OAM(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
 
     # Plot results
-    fig = plt.figure(figsize=(12, 4))  # create a figure object
+    fig = plt.figure()  # create a figure object
     fig.suptitle(dataset)
     COLOR = ['r','b']
     for color,alg in zip(COLOR,ALG):
@@ -60,3 +59,5 @@ if __name__ == '__main__':
     plt.ylabel('AUC')
     plt.legend(loc=4)
     plt.show()
+
+    # fig.savefig('/Users/yangzhenhuan/PycharmProjects/AUC/results/%s.png' % (dataset))

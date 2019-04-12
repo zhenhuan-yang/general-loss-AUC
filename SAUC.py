@@ -1,8 +1,6 @@
 '''
 Stochastic AUC Optimization with General Loss by Yang et al
-
 Author: Zhenhuan(Neyo) Yang
-
 Date: 4/8/19
 '''
 
@@ -56,11 +54,9 @@ def bound(N, loss, L, comb_dict):
 def bern_loss_func(name, L):
     '''
     Define loss function
-
     input:
         name - name of loss funtion
         L - bound for prod
-
     output:
         loss - loss function
     '''
@@ -78,12 +74,10 @@ def bern_loss_func(name, L):
 def pos(N, prod, L):
     '''
     Compute positive function and gradient information
-
     input:
         N -
         prod - wt*xt
         L -
-
     output:
         fpt - positive function value
         gfpt - positive function gradient
@@ -105,10 +99,8 @@ def pos(N, prod, L):
 def comb(N):
     '''
     Compute combination
-
     input:
         N - degree of Bernstein
-
     output:
         c - combination dictionary
     '''
@@ -124,13 +116,11 @@ def comb(N):
 def coef(N, loss, L, comb_dict):
     '''
     Compute the coefficient first
-
     input:
         N - degree of Bernstein
         loss - loss function
         L -
         comb_dict -
-
     output:
         beta - coefficient dictionary
         gbeta - gradient coefficient dictionary
@@ -156,14 +146,12 @@ def coef(N, loss, L, comb_dict):
 def neg(N, prod, L, beta, gbeta):
     '''
     Compute negative function and gradient information
-
     input:
         N -
         loss - loss function
         prod - wt*xt
         L -
         beta - coefficient
-
     output:
         fnt - negative function value
         gfnt - negative function gradient
@@ -195,11 +183,9 @@ def neg(N, prod, L, beta, gbeta):
 def proj(x, R):
     '''
     Projection
-
     input:
         x -
         R - radius
-
     output:
         proj - projected
     '''
@@ -208,63 +194,9 @@ def proj(x, R):
         x = x / norm * R
     return x
 
-def reservoir(tr_list,t,B,M):
-    '''
-    Reservior sampling
-
-    input:
-        tr_list - training list mask
-        t - current index of sample
-        B - buffer size
-        M - total number of samples
-
-    output:
-        tr_list - updated training list mask
-    '''
-    if len(tr_list) < B:
-        tr_list.append(t%M)
-    else:
-        z = np.random.binomial(1, p= B/t)
-        if z == 1:
-            ind = np.random.randint(len(tr_list))
-            tr_list[ind] = t%M
-
-    return tr_list
-
-def sequential(t,M):
-    '''
-    Sequential sampling
-
-    input:
-        t - current sample
-        M - number of total sample size
-
-    output:
-        tr_list - training list mask
-    '''
-
-    epoch = t // M
-    begin = (t * (t - 1) // 2) % M
-    end = (t * (t + 1) // 2) % M
-
-    if epoch < 1:
-        if begin < end:
-            tr_list = [i for i in range(begin, end)]
-        else:  # need to think better
-            tr_list = [i for i in range(begin, M)] + [i for i in range(end)]
-    else:
-        if begin < end:
-            tr_list = [i for i in range(begin, M)] + [i for i in range(M)] * (epoch - 1) + [i for i in range(end)]
-        else:
-            tr_list = [i for i in range(begin, M)] + [i for i in range(M)] * epoch + [i for i in range(end)]
-
-    return tr_list
-
-
 def prox(N, eta, loss, index, X, Y, L, R1, R2, gamma, beta, gbeta, wj, aj, bj, alphaj, bwt):
     '''
     perform proximal guided gradient descent when receive an sample
-
     input:
         N -
         eta - step size
@@ -281,7 +213,6 @@ def prox(N, eta, loss, index, X, Y, L, R1, R2, gamma, beta, gbeta, wj, aj, bj, a
         bj -
         alphaj -
         bwt -
-
     output:
         wj - w at jth step
         aj -
@@ -326,7 +257,6 @@ def prox(N, eta, loss, index, X, Y, L, R1, R2, gamma, beta, gbeta, wj, aj, bj, a
 def PGSPD(N, t, loss, passing_list, X, Y, L, R1, R2, gamma, c, beta, gbeta, bwt, bat, bbt, balphat):
     '''
     Proximally Guided Stochastic Primal Dual Inner loop
-
     input:
         N -
         t - iteration at t
@@ -343,7 +273,6 @@ def PGSPD(N, t, loss, passing_list, X, Y, L, R1, R2, gamma, c, beta, gbeta, bwt,
         bat - last outer loop a
         bbt - last outer loop b
         balphat - last outer loop alpha
-
     output:
         bwt - next outer loop w
         bat - next outer loop a
@@ -386,11 +315,56 @@ def PGSPD(N, t, loss, passing_list, X, Y, L, R1, R2, gamma, c, beta, gbeta, bwt,
 
     return bwt, bat, bbt, balphat, wasted
 
+def sequential(t,M):
+    '''
+    Sequential sampling
+    input:
+        t - current sample
+        M - number of total sample size
+    output:
+        tr_list - training list mask
+    '''
+
+    epoch = t // M
+    begin = (t * (t - 1) // 2) % M
+    end = (t * (t + 1) // 2) % M
+
+    if epoch < 1:
+        if begin < end:
+            tr_list = [i for i in range(begin, end)]
+        else:  # need to think better
+            tr_list = [i for i in range(begin, M)] + [i for i in range(end)]
+    else:
+        if begin < end:
+            tr_list = [i for i in range(begin, M)] + [i for i in range(M)] * (epoch - 1) + [i for i in range(end)]
+        else:
+            tr_list = [i for i in range(begin, M)] + [i for i in range(M)] * epoch + [i for i in range(end)]
+
+    return tr_list
+
+def reservoir(tr_list,t,B,M):
+    '''
+    Reservior sampling
+    input:
+        tr_list - training list mask
+        t - current index of sample
+        B - buffer size
+        M - total number of samples
+    output:
+        tr_list - updated training list mask
+    '''
+    if len(tr_list) < B:
+        tr_list.append(t%M)
+    else:
+        z = np.random.binomial(1, p= B/t)
+        if z == 1:
+            ind = np.random.randint(len(tr_list))
+            tr_list[ind] = t%M
+    return tr_list
 
 def SAUC(Xtr, Ytr, Xte, Yte, options, stamp=10):
     '''
     Stochastic AUC Optimization with General Loss
-
     input:
         Xtr - Training features
         Ytr - Training labels
@@ -398,7 +372,6 @@ def SAUC(Xtr, Ytr, Xte, Yte, options, stamp=10):
         Yte - Testing labels
         options -
         stamp - record stamp
-
     output:
         elapsed_time -
         roc_auc - auc scores
@@ -439,7 +412,7 @@ def SAUC(Xtr, Ytr, Xte, Yte, options, stamp=10):
     # compute gamma(get it done, bitch!)
     R1, R2, gamma = bound(N, loss, L, comb_dict)
 
-    print('SAUC with loss = %s N = %d L = %d gamma = %.02f c = %d' % (name, N, L, gamma, c))
+    print('SAUC with loss = %s sampling = %s N = %d L = %d gamma = %.02f c = %d' % (name, sampling, N, L, gamma, c))
 
     # record training list mask
     tr_list = []
@@ -458,16 +431,21 @@ def SAUC(Xtr, Ytr, Xte, Yte, options, stamp=10):
         prep_time = time.time()
         if sampling == 'sequential':
             tr_list = sequential(t,n)
+            sum_time += time.time() - prep_time
+            # Inner loop
+            WT, AT, BT, ALPHAT, _ = PGSPD(N, t, loss, tr_list, Xtr, Ytr, L, R1, R2, gamma, c, beta, gbeta, WT, AT, BT,
+                                          ALPHAT)
+
         elif sampling == 'reservoir':
-            tr_list = reservoir(tr_list,t,B,t)
-            print(tr_list)
+            tr_list = reservoir(tr_list,t,B,n)
+            # Inner loop
+            WT, AT, BT, ALPHAT, _ = PGSPD(N, len(tr_list), loss, tr_list, Xtr, Ytr, L, R1, R2, gamma, c, beta, gbeta, WT, AT, BT,
+                                          ALPHAT)
+
         else:
             print('Wrong sampling option!')
             return
-        sum_time += time.time() - prep_time
-        # Inner loop
-        WT, AT, BT, ALPHAT, _ = PGSPD(N, t, loss, tr_list, Xtr, Ytr, L, R1, R2, gamma, c, beta, gbeta, WT, AT, BT,
-                                      ALPHAT)
+
         elapsed_time.append(time.time() - start_time - sum_time)
         wasted += _
         avgWT = ((t-1)*avgWT +WT) / t
