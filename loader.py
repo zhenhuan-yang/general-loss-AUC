@@ -8,11 +8,11 @@ def usage():
 
     process =psutil.Process(os.getpid())
 
-    mem = process.memory_percent()
+    mem = process.memory_info()[0] / float(2 ** 20)
 
     return mem
 
-def loader(filename,n = False,f = False,z = False,m = False,s = True):
+def loader(filename,n = True,f = False,z = False,m = False,s = True):
     '''
     Data file loader
 
@@ -37,14 +37,10 @@ def loader(filename,n = False,f = False,z = False,m = False,s = True):
     df = pd.DataFrame(L, dtype='float32').fillna(0) # use float32 to reduce memory usage
     print('Done! Memory usage: %f' % (usage()))
 
-    del L
-
     print('Converting to array......', end=' ')
     X = df.iloc[:, 1:].values
     Y = df.iloc[:, 0].values.astype('int32')
     print('Done! Memory usage: %f' % (usage()))
-
-    del df
 
     # centralize
     if m == True:

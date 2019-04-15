@@ -1,6 +1,5 @@
 '''
 Cross validation
-
 Author: Zhenhuan(Neyo) Yang
 '''
 
@@ -20,12 +19,10 @@ def split(n, folder, folders):
 
     '''
     Split training and testing
-
     input:
         n - number of samples
         folder - number as testing folder
         folders - number of folders
-
     output:
         train_list -
         test_list -
@@ -66,12 +63,9 @@ def single_run(para):
 
     '''
     for multiprocessing mapping function with variable
-
     input:
         para -
-
     output:
-
     '''
 
     # unfold parameters
@@ -109,7 +103,6 @@ def cv(alg, n, folders, num_cpus):
 
     '''
     Cross validation by multiprocessing
-
     input:
         alg - algorithm
         n - number of samples
