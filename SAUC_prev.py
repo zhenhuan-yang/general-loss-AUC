@@ -276,19 +276,22 @@ def prox(N, eta, loss, index, X, Y, L, R1, R2, gamma, wj, aj, bj, alphaj, bwt):
     fnt = np.zeros(N + 1)
     gfnt = np.zeros(N + 1)
     gradwt = 0.0
+    gradat = np.zeros(N+1)
+    gradbt = np.zeros(N+1)
+    gradalphat = np.zeros(N+1)
 
     for i in range(N + 1):
         fpt[i], gfpt[i] = pos(i, prod, L)
         fnt[i], gfnt[i] = neg(N, loss, i, prod, L)
 
         gradwt += w_grad(gfpt[i], gfnt[i], Y[index], aj[i], bj[i], alphaj[i])  # accumulate i
-        gradat = a_grad(fpt[i], Y[index], aj[i])
-        gradbt = b_grad(fnt[i], Y[index], bj[i])
-        gradalphat = alpha_grad(fpt[i], fnt[i], Y[index], alphaj[i])
+        gradat[i] = a_grad(fpt[i], Y[index], aj[i])
+        gradbt[i] = b_grad(fnt[i], Y[index], bj[i])
+        gradalphat[i] = alpha_grad(fpt[i], fnt[i], Y[index], alphaj[i])
 
-        aj[i] = aj[i] - eta * gradat / (2 * (N + 1))
-        bj[i] = bj[i] - eta * gradbt / (2 * (N + 1))
-        alphaj[i] = alphaj[i] + eta * gradalphat / (2 * (N + 1))
+        aj[i] = aj[i] - eta * gradat[i] / (2 * (N + 1))
+        bj[i] = bj[i] - eta * gradbt[i] / (2 * (N + 1))
+        alphaj[i] = alphaj[i] + eta * gradalphat[i] / (2 * (N + 1))
 
     wj = wj - eta * (gradwt * X[index] * Y[index] / (2 * (N + 1)) + gamma * (wj - bwt))
 
@@ -359,7 +362,7 @@ def PGSPD(N, t, loss, passing_list, X, Y, L, R1, R2, gamma, c, bwt, bat, bbt, ba
 
     return bwt, bat, bbt, balphat
 
-def SAUC(T,name,N,L,c,Xtr,Ytr,Xte,Yte,stamp = 10):
+def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 1):
     '''
     Stochastic AUC Optimization with General Loss
 
@@ -380,7 +383,15 @@ def SAUC(T,name,N,L,c,Xtr,Ytr,Xte,Yte,stamp = 10):
         roc_auc - auc scores
     '''
 
-    print('SAUC......')
+    # load parameter
+    T = options['T']
+    name = options['name']
+    N = options['N']
+    R = options['R']
+    L = 2 * R * max(np.linalg.norm(Xtr, axis=1))
+    c = options['c']
+    B = options['B']
+    sampling = options['sampling']
 
     # get the dimension of what we are working with
     n, d = Xtr.shape
@@ -395,6 +406,8 @@ def SAUC(T,name,N,L,c,Xtr,Ytr,Xte,Yte,stamp = 10):
 
     # compute gamma
     R1, R2, gamma = bound(N,loss,L)
+
+    print('SAUC with loss = %s sampling = %s N = %d L = %d gamma = %.02f c = %d' % (name, sampling, N, L, gamma, c))
 
     # record auc
     roc_auc = []
@@ -429,7 +442,7 @@ def SAUC(T,name,N,L,c,Xtr,Ytr,Xte,Yte,stamp = 10):
         if t % stamp == 0:
             elapsed_time.append(time.time() - start_time - sum_time)
             roc_auc.append(roc_auc_score(Yte, np.dot(Xte, WT)))
-            print('gamma: %.2f c: %.2f iteration: %d AUC: %.6f time eplapsed: %.2f' % (gamma, c, t, roc_auc[-1], elapsed_time[-1]))
+            print('iteration: %d AUC: %.6f time elapsed: %.2f' % (t, roc_auc[-1], elapsed_time[-1]))
 
             sum_time = 0.0
 

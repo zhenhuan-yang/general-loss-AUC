@@ -1,6 +1,5 @@
 '''
-Stochastic Proximal AUC Maximization by natole et al
-
+Stochastic Proximal AUC Maximization by Natole et al
 Author: Zhenhuan(Neyo) Yang
 Date: 4/13/19
 '''
@@ -13,12 +12,10 @@ from math import sqrt,fabs
 def prox_l2(x,lam,eta):
     '''
     L2 proximal
-
     input:
         x -
         lam - parameter
         eta - step size
-
     output:
         x -
     '''
@@ -28,13 +25,11 @@ def prox_l2(x,lam,eta):
 def prox_net(x,lam,theta,eta):
     '''
     Elastic net proximal
-
     input:
         x -
         lam - l2 parameter
         theta - l1 parameter
         eta -  step size
-
     output:
         x -
     '''
@@ -45,14 +40,12 @@ def prox_net(x,lam,theta,eta):
 def SPAM(Xtr,Ytr,Xte,Yte,options,stamp=100):
     '''
     Stochastic Proximal AUC Maximization
-
     input:
         Xtr -
         Ytr -
         Xte -
         Yte -
         options -
-
     output:
         elapsed_time -
         roc_auc -
@@ -71,15 +64,10 @@ def SPAM(Xtr,Ytr,Xte,Yte,options,stamp=100):
     n, d = Xtr.shape
 
     # initialize
-    pt = 0.0
+    pt = sum(Ytr[Ytr == 1]) / n
     wt = np.zeros(d)
-    at = 0.0
-    bt = 0.0
-    alphat = 0.0
-    Tpt = 0
-    Tnt = 0
-    mpt = np.zeros(d)
-    mnt = np.zeros(d)
+    mpt = np.mean(Xtr[Ytr == 1],axis=0)
+    mnt = np.mean(Xtr[Ytr == -1],axis=0)
 
     # record auc
     roc_auc = []
@@ -93,29 +81,22 @@ def SPAM(Xtr,Ytr,Xte,Yte,options,stamp=100):
         # step size
         eta = c/sqrt(t)
 
-        # approximate prob
-        pt = ((t - 1) * pt + (Ytr[t % n] + 1) // 2) / t
-
         # compute inner product
         prod = np.inner(wt, Xtr[t % n])
 
+        # compute a,b,alpha
+        at = np.inner(wt, mpt)
+        bt = np.inner(wt, mnt)
+        alphat = at - bt
+
+        # compute gradient
         if Ytr[t%n] == 1:
-            Tpt += 1
-            mpt = ((Tpt - 1) * mpt + Xtr[t%n]) / Tpt
-            at = np.inner(wt,mpt)
-            alphat = at - bt
-            # compute gradient
             gradwt = 2 * (1 - pt) * (prod - at) - 2 * (1 + alphat) * (1 - pt)
         else:
-            Tnt += 1
-            mnt = ((Tnt - 1) * mnt + Xtr[t%n]) / Tnt
-            bt = np.inner(wt,mnt)
-            alphat = at - bt
-            # compute gradient
             gradwt = 2 * pt * (prod - bt) + 2 * (1 + alphat) * pt
 
         # update wt
-        wt = wt - eta*gradwt*Xtr[t%n]
+        wt -= eta*gradwt*Xtr[t%n]
 
         # proxima step
         if reg == 'l2':

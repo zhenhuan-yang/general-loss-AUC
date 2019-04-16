@@ -9,9 +9,26 @@ from math import fabs, sqrt, log, exp, factorial
 import time
 from sklearn.metrics import roc_auc_score
 
-def bound(N, loss, L, comb_dict):
+def comb(N):
     '''
-    Calculate annoying parameters to estimate rho
+    Compute combination
+    input:
+        N - degree of Bernstein
+    output:
+        c - combination dictionary
+    '''
+
+    c = {}
+    for n in range(N + 1):
+        c[n] = np.zeros(n + 1)
+        for k in range(n + 1):
+            c[n][k] = factorial(n) / factorial(k) / factorial(n - k)
+    return c
+
+def bound(N, loss, L, comb_dict):
+
+    '''
+    Calculate annoying parameters to estimate gamma
     '''
 
     R1 = 0.0
@@ -50,13 +67,15 @@ def bound(N, loss, L, comb_dict):
 
     return R1, R2, gamma
 
-
 def bern_loss_func(name, L):
+
     '''
     Define loss function
+
     input:
         name - name of loss funtion
         L - bound for prod
+
     output:
         loss - loss function
     '''
@@ -70,47 +89,26 @@ def bern_loss_func(name, L):
 
     return loss
 
-
 def pos(N, prod, L):
     '''
     Compute positive function and gradient information
+
     input:
-        N -
+        i - index of function
         prod - wt*xt
-        L -
+        L - bound on prod
+
     output:
         fpt - positive function value
         gfpt - positive function gradient
-        wasted - time wasted on computing
     '''
-
-    start = time.time()
 
     plus = L / 2 + prod
     p = list(range(N + 1))
     fpt = np.power(plus, p)
     gfpt = np.multiply(fpt, p) / plus  # no xt yet!
 
-    wasted = time.time() - start
-
-    return fpt, gfpt, wasted
-
-
-def comb(N):
-    '''
-    Compute combination
-    input:
-        N - degree of Bernstein
-    output:
-        c - combination dictionary
-    '''
-
-    c = {}
-    for n in range(N + 1):
-        c[n] = np.zeros(n + 1)
-        for k in range(n + 1):
-            c[n][k] = factorial(n) / factorial(k) / factorial(n - k)
-    return c
+    return fpt, gfpt
 
 
 def coef(N, loss, L, comb_dict):
@@ -142,7 +140,6 @@ def coef(N, loss, L, comb_dict):
 
     return beta, gbeta
 
-
 def neg(N, prod, L, beta, gbeta):
     '''
     Compute negative function and gradient information
@@ -157,8 +154,6 @@ def neg(N, prod, L, beta, gbeta):
         gfnt - negative function gradient
         wasted - time wasted on computing
     '''
-
-    start = time.time()
 
     minus = L / 2 - prod
     p = list(range(N + 1))
@@ -175,17 +170,17 @@ def neg(N, prod, L, beta, gbeta):
         # compute gradient
         gfnt[i] = np.inner(gbeta[i], exponent[:N - i + 1]) / minus  # no xt yet!
 
-    wasted = time.time() - start
-
-    return fnt, gfnt, wasted
+    return fnt, gfnt
 
 
 def proj(x, R):
     '''
     Projection
+
     input:
         x -
         R - radius
+
     output:
         proj - projected
     '''
@@ -194,199 +189,33 @@ def proj(x, R):
         x = x / norm * R
     return x
 
-def prox(N, eta, loss, index, X, Y, L, R1, R2, gamma, beta, gbeta, wj, aj, bj, alphaj, bwt):
-    '''
-    perform proximal guided gradient descent when receive an sample
-    input:
-        N -
-        eta - step size
-        loss - loss function
-        index -
-        X - sample features
-        Y - sample labels
-        L -
-        R1 -
-        R2 -
-        gamma - weakly convex coefficient
-        wj -
-        aj -
-        bj -
-        alphaj -
-        bwt -
-    output:
-        wj - w at jth step
-        aj -
-        bj -
-        alphaj -
-        wasted - time wasted on computing
-    '''
-
-    prod = np.dot(wj, X[index])
-    wasted = 0.0
-
-    fpt, gfpt, _ = pos(N, prod, L)
-    wasted += _
-    fnt, gfnt, _ = neg(N, prod, L, beta, gbeta)
-    wasted += _
-
-    # if condition is faster than two inner product!
-    if Y[index] == 1:
-        gradwt = 2 * np.inner(alphaj - aj, gfpt)
-        gradat = 2 * (aj - fpt)
-        gradbt = 2 * bj
-        gradalphat = -2 * (alphaj - fpt)
-    else:
-        gradwt = 2 * np.inner(alphaj - bj, gfnt)
-        gradat = 2 * aj
-        gradbt = 2 * (bj - fnt)
-        gradalphat = -2 * (alphaj - fnt)
-
-    wj = wj - eta * (gradwt * X[index] * Y[index] / (2 * (N + 1)) + gamma * (wj - bwt))
-    aj = aj - eta * gradat / (2 * (N + 1))
-    bj = bj - eta * gradbt / (2 * (N + 1))
-    alphaj = alphaj + eta * gradalphat / (2 * (N + 1))
-
-    wj = proj(wj, L / 2)
-    aj = proj(aj, R1)
-    bj = proj(bj, R2)
-    alphaj = proj(alphaj, R1 + R2)
-
-    return wj, aj, bj, alphaj, wasted
-
-
-def PGSPD(N, t, loss, passing_list, X, Y, L, R1, R2, gamma, c, beta, gbeta, bwt, bat, bbt, balphat):
-    '''
-    Proximally Guided Stochastic Primal Dual Inner loop
-    input:
-        N -
-        t - iteration at t
-        loss - loss function
-        passing_list
-        X -
-        Y -
-        L -
-        R1 -
-        R2 -
-        gamma -
-        c -
-        bwt - last outer loop w
-        bat - last outer loop a
-        bbt - last outer loop b
-        balphat - last outer loop alpha
-    output:
-        bwt - next outer loop w
-        bat - next outer loop a
-        bbt - next outer loop b
-        balphat - next outer loop alpha
-        wasted - time wasted on computing
-    '''
-
-    wasted = 0.0
-    # initialize inner loop variables
-    Wt = bwt + 0.0
-    At = bat + 0.0
-    Bt = bbt + 0.0
-    ALPHAt = balphat + 0.0
-
-    BWt = Wt + 0.0
-    BAt = At + 0.0
-    BBt = Bt + 0.0
-    BALPHAt = ALPHAt + 0.0
-
-    ETAt = c / sqrt(t) / gamma
-
-    # inner loop update at j
-    for j in range(t):
-        # update inner loop variables
-        Wt, At, Bt, ALPHAt, _ = prox(N, ETAt, loss, passing_list[j], X, Y, L, R1, R2, gamma, beta, gbeta, Wt, At, Bt,
-                                     ALPHAt, bwt)
-        wasted += _
-
-        BWt += Wt
-        BAt += At
-        BBt += Bt
-        BALPHAt += ALPHAt
-
-    # update outer loop variables
-    bwt = BWt / t
-    bat = BAt / t
-    bbt = BBt / t
-    balphat = BALPHAt / t
-
-    return bwt, bat, bbt, balphat, wasted
-
-def sequential(t,M):
-    '''
-    Sequential sampling
-    input:
-        t - current sample
-        M - number of total sample size
-    output:
-        tr_list - training list mask
-    '''
-
-    epoch = t // M
-    begin = (t * (t - 1) // 2) % M
-    end = (t * (t + 1) // 2) % M
-
-    if epoch < 1:
-        if begin < end:
-            tr_list = [i for i in range(begin, end)]
-        else:  # need to think better
-            tr_list = [i for i in range(begin, M)] + [i for i in range(end)]
-    else:
-        if begin < end:
-            tr_list = [i for i in range(begin, M)] + [i for i in range(M)] * (epoch - 1) + [i for i in range(end)]
-        else:
-            tr_list = [i for i in range(begin, M)] + [i for i in range(M)] * epoch + [i for i in range(end)]
-
-    return tr_list
-
-def reservoir(tr_list,t,B,M):
-    '''
-    Reservior sampling
-    input:
-        tr_list - training list mask
-        t - current index of sample
-        B - buffer size
-        M - total number of samples
-    output:
-        tr_list - updated training list mask
-    '''
-    if len(tr_list) < B:
-        tr_list.append(t%M)
-    else:
-        z = np.random.binomial(1, p= B/t)
-        if z == 1:
-            ind = np.random.randint(len(tr_list))
-            tr_list[ind] = t%M
-    return tr_list
-
-def SAUC(Xtr, Ytr, Xte, Yte, options, stamp=10):
+def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 1):
     '''
     Stochastic AUC Optimization with General Loss
+
     input:
+        T -
+        name -
+        N - Bernstein degree
+        L - Bound for prod
+        c - step size parameter
         Xtr - Training features
         Ytr - Training labels
         Xte - Testing features
         Yte - Testing labels
-        options -
         stamp - record stamp
+
     output:
         elapsed_time -
         roc_auc - auc scores
     '''
-
-    sum_time = 0.0
-
-    wasted = 0.0
 
     # load parameter
     T = options['T']
     name = options['name']
     N = options['N']
     R = options['R']
-    L = 2*R*max(np.linalg.norm(Xtr,axis=1))
+    L = 2 * R * max(np.linalg.norm(Xtr, axis=1))
     c = options['c']
     B = options['B']
     sampling = options['sampling']
@@ -394,29 +223,22 @@ def SAUC(Xtr, Ytr, Xte, Yte, options, stamp=10):
     # get the dimension of what we are working with
     n, d = Xtr.shape
 
-    # initializing
     WT = np.zeros(d)
     AT = np.zeros(N + 1)
     BT = np.zeros(N + 1)
     ALPHAT = np.zeros(N + 1)
 
-    # restore average WT
-    avgWT = WT + 0.0
-
     # define loss function
     loss = bern_loss_func(name, L)
 
-    # compute combination and coefficient
+    # compute combinations and coefficients
     comb_dict = comb(N)
     beta, gbeta = coef(N, loss, L, comb_dict)
 
-    # compute gamma(get it done, bitch!)
-    R1, R2, gamma = bound(N, loss, L, comb_dict)
+    # compute gamma
+    R1, R2, gamma = bound(N,loss,L,comb_dict)
 
     print('SAUC with loss = %s sampling = %s N = %d L = %d gamma = %.02f c = %d' % (name, sampling, N, L, gamma, c))
-
-    # record training list mask
-    tr_list = []
 
     # record auc
     roc_auc = []
@@ -427,32 +249,66 @@ def SAUC(Xtr, Ytr, Xte, Yte, options, stamp=10):
 
     # Begin algorithm
     for t in range(1, T + 1):
+        # initialize inner loop variables
+        wj = WT + 0.0
+        aj = AT + 0.0
+        bj = BT + 0.0
+        alphaj = ALPHAT + 0.0
 
-        # Prepare the indices and count preparing time
-        prep_time = time.time()
-        if sampling == 'sequential':
-            tr_list = sequential(t,n)
-            sum_time += time.time() - prep_time
-            # Inner loop
-            WT, AT, BT, ALPHAT, _ = PGSPD(N, t, loss, tr_list, Xtr, Ytr, L, R1, R2, gamma, c, beta, gbeta, WT, AT, BT,
-                                          ALPHAT)
+        BWt = 0.0
+        BAt = 0.0
+        BBt = 0.0
+        BALPHAt = 0.0
 
-        elif sampling == 'reservoir':
-            tr_list = reservoir(tr_list,t,B,n)
-            # Inner loop
-            WT, AT, BT, ALPHAT, _ = PGSPD(N, len(tr_list), loss, tr_list, Xtr, Ytr, L, R1, R2, gamma, c, beta, gbeta, WT, AT, BT,
-                                          ALPHAT)
+        # step size
+        eta = c / sqrt(t) / gamma
 
-        else:
-            print('Wrong sampling option!')
-            return
+        # inner loop update at j
+        for j in range(t):
 
-        elapsed_time.append(time.time() - start_time - sum_time)
-        wasted += _
-        avgWT = ((t-1)*avgWT +WT) / t
-        roc_auc.append(roc_auc_score(Yte, np.dot(Xte, avgWT)))
+            index = (t * (t - 1) // 2 + j) % n
+
+            prod = np.dot(wj, Xtr[index])
+
+            fpt, gfpt = pos(N, prod, L)
+            fnt, gfnt = neg(N, prod, L, beta, gbeta)
+
+            # if condition is faster than two inner product!
+            if Ytr[index] == 1:
+                gradwt = 2 * np.inner(alphaj - aj, gfpt)
+                gradat = 2 * (aj - fpt)
+                gradbt = 2 * bj
+                gradalphat = -2 * (alphaj - fpt)
+            else:
+                gradwt = 2 * np.inner(alphaj - bj, gfnt)
+                gradat = 2 * aj
+                gradbt = 2 * (bj - fnt)
+                gradalphat = -2 * (alphaj - fnt)
+
+            wj = wj - eta * (gradwt * Xtr[index] * Ytr[index] / (2 * (N + 1)) + gamma * (wj - WT))
+            aj = aj - eta * gradat / (2 * (N + 1))
+            bj = bj - eta * gradbt / (2 * (N + 1))
+            alphaj = alphaj + eta * gradalphat / (2 * (N + 1))
+
+            wj = proj(wj, L / 2)
+            aj = proj(aj, R1)
+            bj = proj(bj, R2)
+            alphaj = proj(alphaj, R1 + R2)
+
+            BWt += wj
+            BAt += aj
+            BBt += bj
+            BALPHAt += alphaj
+
+        # update outer loop variables
+        WT = BWt / t
+        AT = BAt / t
+        BT = BBt / t
+        ALPHAT = BALPHAt / t
 
         if t % stamp == 0:
-            print('iteration: %d AUC: %.6f time eplapsed: %.2f/%.2f' % (t, roc_auc[-1], elapsed_time[-1], wasted))
+            elapsed_time.append(time.time() - start_time)
+            roc_auc.append(roc_auc_score(Yte, np.dot(Xte, WT)))
+            print('iteration: %d AUC: %.6f time elapsed: %.2f' % (t, roc_auc[-1], elapsed_time[-1]))
 
     return elapsed_time, roc_auc
