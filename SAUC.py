@@ -305,10 +305,11 @@ def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 1):
         AT = BAt / t
         BT = BBt / t
         ALPHAT = BALPHAt / t
+        
+        elapsed_time.append(time.time() - start_time)
+        roc_auc.append(roc_auc_score(Yte, np.dot(Xte, WT)))
 
         if t % stamp == 0:
-            elapsed_time.append(time.time() - start_time)
-            roc_auc.append(roc_auc_score(Yte, np.dot(Xte, WT)))
             print('iteration: %d AUC: %.6f time elapsed: %.2f' % (t, roc_auc[-1], elapsed_time[-1]))
 
     return elapsed_time, roc_auc
