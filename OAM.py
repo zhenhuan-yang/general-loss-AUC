@@ -68,7 +68,7 @@ def seq(loss,wt,xt,yt,B,ct):
         prod = np.inner(wt,xt - B[i])
         norm = np.inner(xt - B[i],xt - B[i])
         if norm == 0:
-            tau == ct/2
+            tau = ct/2
         else:
             tau = min(ct/2,loss(prod*yt)/norm)
         wt += tau*yt*(xt - B[i])
