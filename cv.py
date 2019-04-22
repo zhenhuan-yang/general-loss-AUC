@@ -1,10 +1,13 @@
 '''
 Cross validation
+
 Author: Zhenhuan(Neyo) Yang
 '''
 
 import numpy as np
 import multiprocessing as mp
+from itertools import product
+import pandas as pd
 import h5py
 from math import fabs
 import matplotlib.pyplot as plt
@@ -19,10 +22,12 @@ def split(n, folder, folders):
 
     '''
     Split training and testing
+
     input:
         n - number of samples
         folder - number as testing folder
         folders - number of folders
+
     output:
         train_list -
         test_list -
@@ -63,13 +68,16 @@ def single_run(para):
 
     '''
     for multiprocessing mapping function with variable
+
     input:
         para -
+
     output:
+
     '''
 
     # unfold parameters
-    folder, alg, trte = para
+    folder, alg, trte,c,r = para
     training, testing = trte
 
     # FEATURES and LABELS must be global here to avoid multiprocessing sharing
@@ -77,6 +85,10 @@ def single_run(para):
     Ytr = LABELS[training]
     Xte = FEATURES[testing]
     Yte = LABELS[testing]
+
+    # Define model parameter
+    options['c'] = c
+    options['R'] = r
 
     # implement algorithm
     if alg =='SAUC':
@@ -96,22 +108,25 @@ def single_run(para):
         elapsed_time = []
         roc_auc = []
 
-    return folder,max(roc_auc)
+    return folder,c,r,roc_auc
 
 
-def cv(alg, n, folders, num_cpus):
+def cv(alg, n, folders, num_cpus, C, R):
 
     '''
     Cross validation by multiprocessing
+
     input:
         alg - algorithm
         n - number of samples
         folders - number of folders
         num_cpus -
+        C -
+        R -
     '''
 
     # record auc
-    ROC_AUC = np.zeros(folders)
+    ROC_AUC = pd.DataFrame()
 
     # record parameters
     input_paras = []
@@ -120,7 +135,8 @@ def cv(alg, n, folders, num_cpus):
     for folder in range(folders):
         training, testing = split(n, folder, folders)
         trte = training, testing
-        input_paras.append((folder,alg,trte))
+        for c,r in product(C,R):
+            input_paras.append((folder,alg,trte,c,r))
 
     # cross validation run on multiprocessors
     with mp.Pool(processes=num_cpus) as pool:
@@ -129,68 +145,51 @@ def cv(alg, n, folders, num_cpus):
         pool.join()
 
     # get results
-    for folder, roc_auc in results_pool:
-        ROC_AUC[folder] = roc_auc
+    for folder, c, r, roc_auc in results_pool:
+        ROC_AUC[(folder,c,r)] = roc_auc
 
-    mean = np.mean(ROC_AUC)
-    std = np.std(ROC_AUC)
-
-    return mean, std
+    return ROC_AUC
 
 
 if __name__ == '__main__':
 
-    # Define hyper parameters
-    options = {}
-    options['T'] = 100
-
-    # Define model parameter
-    options['L'] = 2
-    options['c'] = 1
-
     # Define what to run this time
-    dataset = 'a9a'
+    dataset = 'a1a'
     alg = 'SAUC'
-    folders = 3
+    folders = 2
     num_cpus = 15
 
     # Read data from hdf5 file
-    hf = h5py.File('/home/neyo/PycharmProjects/AUC/datasets/%s.h5' % (dataset), 'r')
+    hf = h5py.File('/home/neyo/PycharmProjects/AUC/h5-datasets/%s.h5' % (dataset), 'r')
     FEATURES = hf['FEATURES'][:]
     LABELS = hf['LABELS'][:]
     hf.close()
 
     m = len(LABELS)
 
-    # Run
-    N = [1,10,20,30,40,50,60,70,80,90,100]
-    NAME = ['hinge','logistic']
-    res = {}
-    for name in NAME:
-        options['name'] = name
-        res[name] = {}
-        res[name]['upper'] = []
-        res[name]['middle'] = []
-        res[name]['lower'] = []
-        for n in N:
-            options['N'] = n
-            mean, std = cv(alg, m, folders, num_cpus)
-            res[name]['upper'].append(mean+std)
-            res[name]['middle'].append(mean)
-            res[name]['lower'].append(mean-std)
+    # Define hyper parameters
+    options = {}
+    options['name'] = 'hinge'
+    options['T'] = 10
+    options['N'] = 5
+    options['option'] = 'sequential'
+    options['sampling'] = 'reservoir'
 
-    # Plot N vs AUC
-    KEY = ['upper','middle','lower']
-    COLOR = ['r','b']
-    fig = plt.figure(figsize=(12, 4))  # create a figure object
-    fig.suptitle(dataset)
-    for name,color in zip(NAME,COLOR):
-        for key in KEY:
-            if key == 'middle':
-                plt.plot(N,res[name][key],'-o',color=color,label=name)
-            else:
-                plt.plot(N,res[name][key],'--o',color=color)
-    plt.xlabel('Degree of Bernstein Polynomial(m)')
-    plt.ylabel('AUC')
-    plt.legend(loc=4)
-    plt.show()
+
+    # Define model parameter
+    options['Np'] = 100
+    options['Nn'] = 100
+    options['B'] = 200
+
+    # Define model parameter to search
+    R = [1,10]
+    C = [1]
+
+    # Run
+    ROC_AUC = cv(alg,m,folders,num_cpus,C,R)
+
+    # Results
+    ROC_AUC.to_pickle('/home/neyo/PycharmProjects/AUC/results/%s_%s.h5' % (alg,dataset))
+
+
+
