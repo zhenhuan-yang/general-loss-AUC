@@ -154,7 +154,7 @@ def cv(alg, n, folders, num_cpus, C, R):
 if __name__ == '__main__':
 
     # Define what to run this time
-    dataset = 'a1a'
+    dataset = 'a9a'
     alg = 'SAUC'
     folders = 2
     num_cpus = 15
@@ -170,7 +170,7 @@ if __name__ == '__main__':
     # Define hyper parameters
     options = {}
     options['name'] = 'hinge'
-    options['T'] = 10
+    options['T'] = 100
     options['N'] = 5
     options['option'] = 'sequential'
     options['sampling'] = 'reservoir'
@@ -182,14 +182,14 @@ if __name__ == '__main__':
     options['B'] = 200
 
     # Define model parameter to search
-    R = [1,10]
-    C = [1]
+    R = [.1,1,10,100]
+    C = [.1,1,10,100]
 
     # Run
     ROC_AUC = cv(alg,m,folders,num_cpus,C,R)
 
     # Results
-    ROC_AUC.to_pickle('/home/neyo/PycharmProjects/AUC/results/%s_%s.h5' % (alg,dataset))
+    ROC_AUC.to_pickle('/home/neyo/PycharmProjects/AUC/results/cv_%s_%s.h5' % (alg,dataset))
 
 
 
