@@ -1,60 +1,38 @@
+import pandas as pd
 import numpy as np
 from itertools import product
-from matplotlib import pyplot as plt
-import pickle
-
-def compute(x):
-    '''
-    Compute mean and standard deviation
-    '''
-    BOUND = np.zeros((folders,LOSS,ALG,L,LAM,C,COMPLETE))
-    MEAN = np.zeros((LOSS,ALG,L,LAM,C,COMPLETE))
-    STD = np.zeros((LOSS,ALG,L,LAM,C,COMPLETE))
-
-    for folder,loss,alg,l,lam,c,complete in product(range(folders),range(LOSS),range(ALG),range(L),range(LAM),range(C),
-                                                    range(COMPLETE)):
-        #BOUND[folder,loss,alg,l,lam,c,complete] = np.max(x[folder,loss,alg,l,lam,c,complete,:])
-        BOUND[folder, loss, alg, l, lam, c, complete] = x[folder, loss, alg, l, lam, c, complete, -1]
-    for loss,alg,l,lam,c,complete in product(range(LOSS),range(ALG),range(L),range(LAM), range(C),range(COMPLETE)):
-        MEAN[loss,alg,l,lam,c,complete] = np.mean(BOUND[:,loss,alg,l,lam,c,complete])
-        STD[loss,alg,l,lam, c,complete] = np.std(BOUND[:,loss,alg,l,lam,c,complete])
-
-    print('Mean:')
-    print(MEAN)
-    print('Standard deviation:')
-    print(STD)
-
-    return MEAN, STD
-
-
-def draw(x_dict):
-    '''
-    Plot AUC
-    '''
-    handle = ['r-','b--']
-    for i,(key,value) in enumerate(x_dict.items()):
-        if key[-1] == True:
-            plt.plot(value[1], value[0], handle[i%len(handle)], LineWidth = 2, label=key[1]) # +r'+$\frac{\gamma}{2}||\mathbf{v} - \bar\mathbf{{v}}||^2$')
-        else:
-            plt.plot(value[1], value[0], handle[i%len(handle)], LineWidth = 2, label=key[1]) # + r'+$\frac{\gamma}{2}||\mathbf{w} - \bar{\mathbf{w}}||^2$')
-    plt.xlabel('time')
-    plt.ylabel('AUC')
-    #plt.ylim(.80,.95)
-    plt.legend(loc='lower right',prop={'size': 12})
-    plt.show()
-
-    return
+import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
-    dataset = 'splice'
 
-    with open('%s_table.p' % (dataset), 'rb') as table:
-        x = pickle.load(table)
+    alg = 'SAUC'
+    dataset = 'pendigits'
 
-    with open('%s_plot.p' % (dataset), 'rb') as plot:
-        x_dict = pickle.load(plot)
+    # Read
+    df = pd.read_pickle('/home/neyo/PycharmProjects/AUC/results/cv_%s_%s.h5' % (alg,dataset))
 
-    folders, LOSS, ALG, L, LAM, C, COMPLETE, T = x.shape # T is general now: can be iteration or recorded auc length
+    R = [.01, .1, 1, 10, 100]
+    C = [.01, .1, 1, 10, 100]
 
-    compute(x)
-    draw(x_dict)
+    result = pd.DataFrame()
+    ind = pd.DataFrame()
+    # Results
+    for c,r in product(C,R):
+        result[(c, r)] = [np.max(df[(c, r)]['MEAN'])]
+
+
+        plt.plot(df[(c, r)]['MEAN'], label='c= %.2f R = %.2f AUC = %.4f' % (c, r, result[(c,r)]))
+
+
+    column_ind = np.argmax(result.values)
+    column = result.columns[column_ind]
+    ind = np.argmax(df[column]['MEAN'])
+    print('alg = %s data = %s c = %.2f R = %.2f AUC = ' % (alg, dataset, column[0], column[1]), end = ' ')
+    print(('%.4f$\pm$'%result[column]).lstrip('0'), end = '')
+    print(('%.4f'%df[column]['STD'][ind]).lstrip('0'))
+    plt.xlabel('Iteration')
+    plt.ylabel('AUC')
+    plt.ylim([.5, 1])
+    plt.legend(loc=4)
+    plt.title('%s_%s' % (alg, dataset))
+    plt.show()
