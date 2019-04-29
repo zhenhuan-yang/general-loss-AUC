@@ -1,6 +1,5 @@
 '''
 Stochastic Online AUC Maximization
-
 Author: Zhenhuan(Neyo) Yang
 '''
 
@@ -23,17 +22,15 @@ def proj(x, R):
         x = x / norm * R
     return x
 
-def SOLAM(Xtr, Ytr, Xte, Yte, options,stamp = 100):
+def SOLAM(Xtr, Ytr, Xte, Yte, options,stamp = 1000):
     '''
     Stochastic Online AUC Maximization
-
     input:
         Xtr -
         Ytr -
         Xte -
         Yte -
         options -
-
     output:
         elapsed_time -
         roc_auc -
@@ -45,7 +42,7 @@ def SOLAM(Xtr, Ytr, Xte, Yte, options,stamp = 100):
     R = options['R']
     L = 2 * R * max(np.linalg.norm(Xtr, axis=1))
 
-    print('SOLAM with c = %.2f' % (c))
+    print('SOLAM with R = %.2f c = %.2f' % (R,c))
 
     # get the dimension of what we are working with
     n, d = Xtr.shape
@@ -75,7 +72,7 @@ def SOLAM(Xtr, Ytr, Xte, Yte, options,stamp = 100):
         pt = ((t-1)*pt + (Ytr[t%n]+1)//2)/t
 
         # compute inner product
-        prod = np.inner(wt,Xtr[t%n])
+        prod = wt @ Xtr[t%n]
 
         # step size
         eta = c/sqrt(t)

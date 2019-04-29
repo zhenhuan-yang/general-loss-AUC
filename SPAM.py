@@ -9,6 +9,20 @@ import time
 from sklearn.metrics import roc_auc_score
 from math import sqrt,fabs
 
+def proj(x, R):
+    '''
+    Projection
+    input:
+        x -
+        R - radius
+    output:
+        proj - projected
+    '''
+    norm = np.linalg.norm(x)
+    if norm > R:
+        x = x / norm * R
+    return x
+
 def prox_l2(x,lam,eta):
     '''
     L2 proximal
@@ -54,11 +68,11 @@ def SPAM(Xtr,Ytr,Xte,Yte,options,stamp=100):
     # load parameter
     T = options['T']
     c = options['c']
-    lam = options['lam']
+    R = options['R'] # modified algorithm bounded not regularized
     theta = options['theta']
     reg = options['reg']
 
-    print('SPAM with c = %.2f' % (c))
+    print('SPAM with R = %.2f c = %.2f' % (R,c))
 
     # get the dimension of what we are working with
     n, d = Xtr.shape
@@ -96,16 +110,16 @@ def SPAM(Xtr,Ytr,Xte,Yte,options,stamp=100):
             gradwt = 2 * pt * (prod - bt) + 2 * (1 + alphat) * pt
 
         # update wt
-        wt -= eta*gradwt*Xtr[t%n]
+        wt = proj(wt - eta*gradwt*Xtr[t%n], R)
 
         # proxima step
-        if reg == 'l2':
-            wt = prox_l2(wt,lam,eta)
-        elif reg == 'net':
-            wt = prox_net(wt,lam,theta,eta)
-        else:
-            print('Wrong regularizer!')
-            return
+        # if reg == 'l2':
+        #     wt = prox_l2(wt,lam,eta)
+        # elif reg == 'net':
+        #     wt = prox_net(wt,lam,theta,eta)
+        # else:
+        #     print('Wrong regularizer!')
+        #     return
 
         # write results
         elapsed_time.append(time.time() - start_time)

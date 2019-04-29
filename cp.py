@@ -5,8 +5,6 @@ Author: Zhenhuan(Neyo) Yang
 
 import h5py
 import matplotlib.pyplot as plt
-import multiprocessing as mp
-from math import fabs
 from SOLAM import SOLAM
 from SAUC import SAUC
 from SPAM import SPAM
@@ -38,8 +36,8 @@ if __name__ == '__main__':
 
 
     # Define what to run this time
-    dataset = 'a9a'
-    ALG = ['OPAUC']
+    dataset = 'sector.scale'
+    ALG = ['SAUC']
 
     hf = h5py.File('/home/neyo/PycharmProjects/AUC/h5-datasets/%s.h5' % (dataset), 'r')
     FEATURES = hf['FEATURES'][:]
@@ -55,20 +53,21 @@ if __name__ == '__main__':
     res = {}
     for alg in ALG:
         if alg == 'SOLAM':
-
+            options['T'] = 2000
             res[alg] = SOLAM(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
         elif alg == 'FSAUC':
             res[alg] = FSAUC(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
         elif alg == 'OAM':
-            options['T'] = 2000
+            options['T'] = 1000
             res[alg] = OAM(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
         elif alg == 'OPAUC':
             options['T'] = 1000
             res[alg] = OPAUC(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
         elif alg == 'SPAM':
+            options['T'] = 2000
             res[alg] = SPAM(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
         else:
-            options['T'] = 100
+            options['T'] = 200
             res[alg] = SAUC(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
 
     # Plot results

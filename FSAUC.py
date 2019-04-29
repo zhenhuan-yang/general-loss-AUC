@@ -13,11 +13,9 @@ def proj_l1(v,R):
     '''
     Efficient Projections onto the l1-Ball for Learning in High Dimensions
     Duchi et al.
-
     input:
         v -
         R - radius
-
     output:
         w -
     '''
@@ -57,12 +55,10 @@ def proj_l1(v,R):
 def proj_l2(v,o,R):
     '''
     Projection onto eccentric l2 ball
-
     input:
         v -
         o - center
         R - radius
-
     output:
         w - projected
     '''
@@ -75,11 +71,9 @@ def proj_l2(v,o,R):
 def alt_proj_primal(w,a,b,o,r,R,kappa):
     '''
     Alternating Projection Algorithm
-
     input:
         v -
         R - radius
-
     output:
         w -
     '''
@@ -131,7 +125,6 @@ def alt_proj_dual(alpha,o,D,R,kappa):
 def FSAUC(Xtr,Ytr,Xte,Yte,options,stamp=1):
     '''
     Fast Stochastic AUC Maximization
-
     input:
         n - total iteration
         Xtr -
@@ -139,7 +132,6 @@ def FSAUC(Xtr,Ytr,Xte,Yte,options,stamp=1):
         Xte -
         Yte -
         options -
-
     output:
         Wt -
     '''

@@ -67,6 +67,13 @@ def bound(N, loss, L, comb_dict):
 
     return R1, R2, gamma
 
+def sign(x):
+    if x<0:
+        y = 1
+    else:
+        y = 0
+    return y
+
 def bern_loss_func(name, L):
 
     '''
@@ -84,6 +91,8 @@ def bern_loss_func(name, L):
         loss = lambda x: max(0, 1 + L - 2 * L * x)
     elif name == 'logistic':
         loss = lambda x: log(1 + exp(L - 2 * L * x))
+    elif name == 'sign':
+        loss = lambda x: sign(2 * L * x - L)
     else:
         print('Wrong loss function!')
 
@@ -189,7 +198,7 @@ def proj(x, R):
         x = x / norm * R
     return x
 
-def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 1):
+def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 10):
     '''
     Stochastic AUC Optimization with General Loss
 
@@ -217,8 +226,8 @@ def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 1):
     R = options['R']
     L = 2 * R * max(np.linalg.norm(Xtr, axis=1))
     c = options['c']
-    B = options['B']
-    sampling = options['sampling']
+    # B = options['B']
+    # sampling = options['sampling']
 
     # get the dimension of what we are working with
     n, d = Xtr.shape
@@ -238,7 +247,10 @@ def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 1):
     # compute gamma
     R1, R2, gamma = bound(N,loss,L,comb_dict)
 
-    print('SAUC with loss = %s sampling = %s N = %d L = %d gamma = %.02f c = %d' % (name, sampling, N, L, gamma, c))
+    print('SAUC with loss = %s N = %d R = %d gamma = %.02f c = %d' % (name, N, R, gamma, c))
+
+    # restore average wt
+    avgwt = WT + 0.0
 
     # record auc
     roc_auc = []
@@ -268,19 +280,19 @@ def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 1):
 
             index = (t * (t - 1) // 2 + j) % n
 
-            prod = np.dot(wj, Xtr[index])
+            prod = wj @ Xtr[index]
 
             fpt, gfpt = pos(N, prod, L)
             fnt, gfnt = neg(N, prod, L, beta, gbeta)
 
             # if condition is faster than two inner product!
             if Ytr[index] == 1:
-                gradwt = 2 * np.inner(alphaj - aj, gfpt)
+                gradwt = 2 * (alphaj - aj) @ gfpt
                 gradat = 2 * (aj - fpt)
                 gradbt = 2 * bj
                 gradalphat = -2 * (alphaj - fpt)
             else:
-                gradwt = 2 * np.inner(alphaj - bj, gfnt)
+                gradwt = 2 * (alphaj - bj) @ gfnt
                 gradat = 2 * aj
                 gradbt = 2 * (bj - fnt)
                 gradalphat = -2 * (alphaj - fnt)
@@ -305,9 +317,11 @@ def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 1):
         AT = BAt / t
         BT = BBt / t
         ALPHAT = BALPHAt / t
-        
+
         elapsed_time.append(time.time() - start_time)
-        roc_auc.append(roc_auc_score(Yte, np.dot(Xte, WT)))
+        avgwt = ((t - 1) * avgwt + WT) / t
+
+        roc_auc.append(roc_auc_score(Yte, Xte @ avgwt))
 
         if t % stamp == 0:
             print('iteration: %d AUC: %.6f time elapsed: %.2f' % (t, roc_auc[-1], elapsed_time[-1]))

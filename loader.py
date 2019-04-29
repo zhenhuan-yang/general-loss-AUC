@@ -15,10 +15,8 @@ def usage():
 def loader(filename,n = True,f = False,z = False,m = False,s = True):
     '''
     Data file loader
-
     input:
         filename - filename
-
     output:
         x - sample features
         y - sample labels
@@ -26,12 +24,13 @@ def loader(filename,n = True,f = False,z = False,m = False,s = True):
     print('Initializing cvs reader......', end=' ')
     # raw data
     L = []
-    with open('/Users/yangzhenhuan/PycharmProjects/AUC/datasets/'+filename, 'r') as file:
-        for line in csv.reader(file, delimiter=' '):
-            line[0] = '0:' + line[0]
-            line = filter(None, line)  # get rid of potential empty elements
-            L.append(dict(i.split(':') for i in line))
-    print('Done! Memory usage: %f' %(usage()))
+    with open('/home/neyo/PycharmProjects/AUC/datasets/' + filename, 'r') as file:
+        for line in file:
+            l = line.strip().split(' ')
+            l[0] = '0:' + l[0]
+            l = filter(None, l)  # get rid of potential empty elements
+            L.append(dict(i.split(':') for i in l))
+    print('Done! Memory usage: %f' % (usage()))
 
     print('Converting to dataframe......', end=' ')
     df = pd.DataFrame(L, dtype='float32').fillna(0) # use float32 to reduce memory usage
@@ -91,10 +90,10 @@ def loader(filename,n = True,f = False,z = False,m = False,s = True):
 
 if __name__ == '__main__':
     #np.random.seed(4)
-    dataset = 'cod-rna'
+    dataset = 'rcv1_train.binary'
     FEATURES,LABELS = loader(dataset)
     print('Write .h5 file......', end=' ')
-    hf = h5py.File('/Users/yangzhenhuan/PycharmProjects/AUC/datasets/%s.h5' %(dataset), 'w')
+    hf = h5py.File('/home/neyo/PycharmProjects/AUC/h5-datasets/%s.h5' %(dataset), 'w')
     hf.create_dataset('FEATURES',data=FEATURES)
     hf.create_dataset('LABELS', data=LABELS)
     hf.close()

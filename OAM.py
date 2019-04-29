@@ -9,6 +9,23 @@ import time
 from math import log, exp
 from sklearn.metrics import roc_auc_score
 
+def proj(x, R):
+    '''
+    Projection
+
+    input:
+        x -
+        R - radius
+
+    output:
+        proj - projected
+    '''
+    norm = np.linalg.norm(x)
+    if norm > R:
+        x = x / norm * R
+
+    return x
+
 def loss_func(name):
     '''
     Define loss function
@@ -27,7 +44,7 @@ def loss_func(name):
 
     return loss
 
-def reservior(Bt,xt,N,M):
+def reservior(Bt,t,N,M):
     '''
     Reservior Sampling
     input:
@@ -41,60 +58,14 @@ def reservior(Bt,xt,N,M):
 
     L = len(Bt)
     if L < N:
-        Bt.append(xt)
+        Bt.append(t)
     else:
         z = np.random.binomial(1, p=N/M)
         if z == 1:
             ind = np.random.randint(L)
-            Bt[ind] = xt
+            Bt[ind] = t
 
     return Bt
-
-def seq(loss,wt,xt,yt,B,ct):
-    '''
-    Sequential update
-    input:
-        grad - gradient of loss function
-        wt - the current classifier
-        xt -
-        yt -
-        B - the buffer to be compared to
-        ct - a parameter that weights the comparison
-    output:
-        wt - th updated classifier
-    '''
-    L = len(B)
-    for i in range(L):
-        prod = np.inner(wt,xt - B[i])
-        norm = np.inner(xt - B[i],xt - B[i])
-        if norm == 0:
-            tau = ct/2
-        else:
-            tau = min(ct/2,loss(prod*yt)/norm)
-        wt += tau*yt*(xt - B[i])
-
-    return wt
-
-def gra(wt,xt,yt,B,ct):
-    '''
-    gradient updating
-    input:
-        wt - the current classifier
-        xt -
-        yt -
-        B - the bufferto be compared to
-        ct - a parameter that weights the comparison
-    output:
-        wt - th updated classifier
-    '''
-    L = len(B)
-    w = wt + 0.0
-    for i in range(L):
-        prod = np.inner(w,xt - B[i])
-        if yt*prod <= 1:
-            wt += ct*yt*(xt - B[i])/2
-
-    return wt
 
 def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
     '''
@@ -124,8 +95,9 @@ def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
     Np = options['Np']
     Nn = options['Nn']
     c = options['c']
+    R = options['R']
 
-    print('OAM with loss = %s sampling = %s option = %s Np = %d Nn = %d c = %.2f' %(name,sampling,option,Np,Nn,c))
+    print('OAM with loss = %s sampling = %s option = %s Np = %d Nn = %d R = %.2f c = %.2f' %(name,sampling,option,Np,Nn,R,c))
 
     # get the dimension of what we are working with
     n, d = Xtr.shape
@@ -155,17 +127,32 @@ def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
             Npt += 1
             if sampling == 'reservoir':
                 ct = c*max(1,Nnt/Nn)
-                Bpt = reservior(Bpt,Xtr[t%n],Np,Npt)
+                Bpt = reservior(Bpt,t%n,Np,Npt)
             elif sampling == 'sequential':
                 ct = c
-                Bpt.append(Xtr[t%n])
+                Bpt.append(t%n)
             else:
                 print('wrong sampling option!')
                 return
             if option == 'sequential':
-                wt = seq(loss,wt,Xtr[t%n],Ytr[t%n],Bnt,ct)
+                for i in Bnt:
+                    prod = wt @ (Xtr[t%n] - Xtr[i])
+                    norm = (Xtr[t%n] - Xtr[i]) @ (Xtr[t%n] - Xtr[i])
+                    if norm == 0:
+                        tau = ct / 2
+                    else:
+                        tau = min(ct / 2, loss(prod * Ytr[t%n]) / norm)
+                    wt += tau * Ytr[t%n] * (Xtr[t%n] - Xtr[i])
+                    wt = proj(wt, R)
+
             elif option == 'gradient':
-                wt = gra(wt, Xtr[t % n], Ytr[t % n], Bnt, ct)
+                w = wt + 0.0
+                for i in Bnt:
+                    prod = wt @ (Xtr[t%n] - Xtr[i])
+                    if Ytr[t%n] * prod <= 1:
+                        wt += ct * Ytr[t%n] * (Xtr[t%n] - Xtr[i]) / 2
+
+                wt = proj(wt, R)
             else:
                 print('Wrong update option!')
                 return
@@ -173,17 +160,30 @@ def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
             Nnt += 1
             if sampling == 'reservoir':
                 ct = c*max(1,Npt/Np)
-                Bnt = reservior(Bnt,Xtr[t%n],Nn,Nnt)
+                Bnt = reservior(Bnt,t%n,Nn,Nnt)
             elif sampling == 'sequential':
                 ct = c
-                Bnt.append(Xtr[t%n])
+                Bnt.append(t%n)
             else:
                 print('Wrong sampling option!')
                 return
             if option == 'sequential':
-                wt = seq(loss,wt,Xtr[t%n],Ytr[t%n],Bpt,ct)
+                for i in Bpt:
+                    prod = wt @ (Xtr[t%n] - Xtr[i])
+                    norm = (Xtr[t%n] - Xtr[i]) @ (Xtr[t%n] - Xtr[i])
+                    if norm == 0:
+                        tau = ct / 2
+                    else:
+                        tau = min(ct / 2, loss(prod * Ytr[t%n]) / norm)
+                    wt += tau * Ytr[t%n] * (Xtr[t%n] - Xtr[i])
+                    wt = proj(wt, R)
             elif option == 'gradient':
-                wt = gra(wt, Xtr[t % n], Ytr[t % n], Bpt, ct)
+                w = wt + 0.0
+                for i in Bpt:
+                    prod = wt @ (Xtr[t%n] - Xtr[i])
+                    if Ytr[t % n] * prod <= 1:
+                        wt += ct * Ytr[t % n] * (Xtr[t % n] - Xtr[i]) / 2
+                wt = proj(wt, R)
             else:
                 print('Wrong update option!')
                 return
@@ -191,10 +191,10 @@ def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
         # write results
         elapsed_time.append(time.time() - start_time)
         avgwt = ((t-1)*avgwt + wt) / t
-        roc_auc.append(roc_auc_score(Yte, np.dot(Xte, avgwt)))
+        roc_auc.append(roc_auc_score(Yte, Xte @ avgwt))
 
         # running log
         if t % stamp == 0:
-            print('iteration: %d AUC: %.6f time eplapsed: %.2f' % (t, roc_auc[-1], elapsed_time[-1]))
+            print('iteration: %d Buffer: %d AUC: %.6f time eplapsed: %.2f' % (t, len(Bpt)+len(Bnt), roc_auc[-1], elapsed_time[-1]))
 
     return elapsed_time, roc_auc

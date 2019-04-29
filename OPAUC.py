@@ -9,6 +9,20 @@ import time
 from math import sqrt
 from sklearn.metrics import roc_auc_score
 
+def proj(x, R):
+    '''
+    Projection
+    input:
+        x -
+        R - radius
+    output:
+        proj - projected
+    '''
+    norm = np.linalg.norm(x)
+    if norm > R:
+        x = x / norm * R
+    return x
+
 def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
     '''
     One-Pass AUC Optimization
@@ -26,11 +40,11 @@ def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
     # load parameter
     T = options['T']
     c = options['c']
-    lam = options['lam']
+    R = options['R'] # modified algorithm to be bounded not regularized
     cov = options['cov']
     tau = options['tau']
 
-    print('OPAUC with covariance = %s lambda = %.2f c  = %.2f' % (cov,lam,c))
+    print('OPAUC with covariance = %s R = %.2f c  = %.2f' % (cov,R,c))
 
     # get the dimension of what we are working with
     n, d = Xtr.shape
@@ -74,7 +88,7 @@ def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
                 Gammapt = Gammapt + (np.outer(Xtr[t%n], Xtr[t%n]) - Gammapt)/Tpt + np.outer(cpt,cpt)
                 cpt = cpt + (Xtr[t % n] - cpt) / Tpt
                 Gammapt -= np.outer(cpt,cpt)
-                gwt = lam*wt - Xtr[t%n] + cnt + (np.outer(Xtr[t%n] - cnt, Xtr[t%n] - cnt) + Gammant)@wt
+                gwt = Xtr[t%n] + cnt + (np.outer(Xtr[t%n] - cnt, Xtr[t%n] - cnt) + Gammant)@wt
             elif cov == 'approximate':
                 rt = np.random.randn(tau)
                 Gammapt = Gammapt + np.outer(Xtr[t % n], rt) / sqrt(tau)  # note there is typo in icml version
@@ -82,7 +96,7 @@ def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
                 cpt = cpt + (Xtr[t % n] - cpt) / Tpt
                 Rpt += rt
                 cpt_hat = np.outer(cpt,Rpt)/sqrt(tau)
-                gwt = lam*wt - Xtr[t%n] + cnt + (np.outer(Xtr[t%n] - cnt, Xtr[t%n] - cnt) + Snt_hat)@wt
+                gwt = Xtr[t%n] + cnt + (np.outer(Xtr[t%n] - cnt, Xtr[t%n] - cnt) + Snt_hat)@wt
             else:
                 print('Wrong covariance option!')
                 return
@@ -92,7 +106,7 @@ def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
                 Gammant = Gammant + (np.outer(Xtr[t % n], Xtr[t % n]) - Gammant) / Tnt + np.outer(cnt, cnt)
                 cnt = cnt + (Xtr[t % n] - cnt) / Tnt
                 Gammant -= np.outer(cnt, cnt)
-                gwt = lam * wt + Xtr[t % n] - cpt + (np.outer(Xtr[t % n] - cpt, Xtr[t % n] - cpt) + Gammapt) @ wt
+                gwt = Xtr[t % n] - cpt + (np.outer(Xtr[t % n] - cpt, Xtr[t % n] - cpt) + Gammapt) @ wt
             elif cov == 'approximate':
                 rt = np.random.randn(tau)
                 Gammant = Gammant + np.outer(Xtr[t % n], rt) / sqrt(tau)  # note there is typo in icml version
@@ -100,13 +114,13 @@ def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
                 cnt = cnt + (Xtr[t % n] - cnt) / Tnt
                 Rnt += rt
                 cnt_hat = np.outer(cnt, Rnt) / sqrt(tau)
-                gwt = lam * wt - Xtr[t % n] + cpt + (np.outer(Xtr[t % n] - cpt, Xtr[t % n] - cpt) + Spt_hat) @ wt
+                gwt = Xtr[t % n] + cpt + (np.outer(Xtr[t % n] - cpt, Xtr[t % n] - cpt) + Spt_hat) @ wt
             else:
                 print('Wrong covariance option!')
                 return
 
         # gradient descent
-        wt -= eta * gwt
+        wt = proj(wt - eta * gwt, R)
 
         # write results
         elapsed_time.append(time.time() - start_time)
