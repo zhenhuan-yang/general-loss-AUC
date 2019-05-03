@@ -48,6 +48,11 @@ def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
 
     # get the dimension of what we are working with
     n, d = Xtr.shape
+    if d<tau:
+        print('dimension = %d approximation = %d' %(d,tau))
+        return
+    else:
+        print('dimension = %d approximation = %d' %(d,tau))
 
     # initialize
     wt = np.zeros(d)
@@ -85,36 +90,38 @@ def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
         if Ytr[t % n] == 1:
             Tpt += 1
             if cov == 'full':
-                Gammapt = Gammapt + (np.outer(Xtr[t%n], Xtr[t%n]) - Gammapt)/Tpt + np.outer(cpt,cpt)
+                temp = cpt + 0.0 #
                 cpt = cpt + (Xtr[t % n] - cpt) / Tpt
-                Gammapt -= np.outer(cpt,cpt)
-                gwt = Xtr[t%n] + cnt + (np.outer(Xtr[t%n] - cnt, Xtr[t%n] - cnt) + Gammant)@wt
+                Gammapt = Gammapt + (np.outer(Xtr[t%n], Xtr[t%n]) - Gammapt)/Tpt + np.outer(temp,temp) - np.outer(cpt,cpt)
+                gwt = -Xtr[t%n] + cnt + (np.outer(Xtr[t%n] - cnt, Xtr[t%n] - cnt) + Gammant)@wt
             elif cov == 'approximate':
                 rt = np.random.randn(tau)
+                Rpt += rt/tau
                 Gammapt = Gammapt + np.outer(Xtr[t % n], rt) / sqrt(tau)  # note there is typo in icml version
                 Spt_hat = Gammapt @ Gammapt.transpose() / Tpt - cpt_hat @ cpt_hat.transpose()
                 cpt = cpt + (Xtr[t % n] - cpt) / Tpt
-                Rpt += rt
+
                 cpt_hat = np.outer(cpt,Rpt)/sqrt(tau)
-                gwt = Xtr[t%n] + cnt + (np.outer(Xtr[t%n] - cnt, Xtr[t%n] - cnt) + Snt_hat)@wt
+                gwt = -Xtr[t%n] + cnt + (np.outer(Xtr[t%n] - cnt, Xtr[t%n] - cnt) + Snt_hat)@wt
             else:
                 print('Wrong covariance option!')
                 return
         else:
             Tnt += 1
             if cov == 'full':
-                Gammant = Gammant + (np.outer(Xtr[t % n], Xtr[t % n]) - Gammant) / Tnt + np.outer(cnt, cnt)
+                temp = cnt + 0.0
                 cnt = cnt + (Xtr[t % n] - cnt) / Tnt
-                Gammant -= np.outer(cnt, cnt)
+                Gammant = Gammant + (np.outer(Xtr[t % n], Xtr[t % n]) - Gammant) / Tnt + np.outer(temp, temp) - np.outer(cnt, cnt)
                 gwt = Xtr[t % n] - cpt + (np.outer(Xtr[t % n] - cpt, Xtr[t % n] - cpt) + Gammapt) @ wt
             elif cov == 'approximate':
                 rt = np.random.randn(tau)
+                Rnt += rt/tau
                 Gammant = Gammant + np.outer(Xtr[t % n], rt) / sqrt(tau)  # note there is typo in icml version
                 Snt_hat = Gammant @ Gammant.transpose() / Tnt - cnt_hat @ cnt_hat.transpose()
                 cnt = cnt + (Xtr[t % n] - cnt) / Tnt
-                Rnt += rt
+
                 cnt_hat = np.outer(cnt, Rnt) / sqrt(tau)
-                gwt = Xtr[t % n] + cpt + (np.outer(Xtr[t % n] - cpt, Xtr[t % n] - cpt) + Spt_hat) @ wt
+                gwt = Xtr[t % n] - cpt + (np.outer(Xtr[t % n] - cpt, Xtr[t % n] - cpt) + Spt_hat) @ wt
             else:
                 print('Wrong covariance option!')
                 return
