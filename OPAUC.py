@@ -68,6 +68,7 @@ def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
         Gammant = np.zeros((d,tau))
         Rpt = np.zeros(tau) # record accumulative gaussian vectors
         Rnt = np.zeros(tau)
+        # store for convenience
         cpt_hat = np.zeros((d,tau))
         cnt_hat = np.zeros((d,tau))
         Spt_hat = np.zeros((d,d))
