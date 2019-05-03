@@ -180,7 +180,7 @@ def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
             elif option == 'gradient':
                 w = wt + 0.0
                 for i in Bpt:
-                    prod = wt @ (Xtr[t%n] - Xtr[i])
+                    prod = w @ (Xtr[t%n] - Xtr[i])
                     if Ytr[t % n] * prod <= 1:
                         wt += ct * Ytr[t % n] * (Xtr[t % n] - Xtr[i]) / 2
                 wt = proj(wt, R)
@@ -195,6 +195,6 @@ def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
 
         # running log
         if t % stamp == 0:
-            print('iteration: %d Buffer: %d AUC: %.6f time eplapsed: %.2f' % (t, len(Bpt)+len(Bnt), roc_auc[-1], elapsed_time[-1]))
+            print('iteration: %d AUC: %.6f time eplapsed: %.2f' % (t, roc_auc[-1], elapsed_time[-1]))
 
     return elapsed_time, roc_auc

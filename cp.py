@@ -7,6 +7,8 @@ import h5py
 import matplotlib.pyplot as plt
 from SOLAM import SOLAM
 from SAUC import SAUC
+from SAUC_prev import SAUC_prev
+from SAUC_new import SAUC_new
 from SPAM import SPAM
 from OAM import OAM
 from OPAUC import OPAUC
@@ -23,11 +25,11 @@ if __name__ == '__main__':
     options['cov'] = 'approximate'
 
     # Define model parameter
-    options['N'] = 5
+    options['N'] = 10
     options['R'] = 1
     options['c'] = 1
-    options['Np'] = 100000
-    options['Nn'] = 100000
+    options['Np'] = 100
+    options['Nn'] = 100
     options['B'] = 200
     options['delta'] = .05
     options['lam'] = 1
@@ -36,8 +38,8 @@ if __name__ == '__main__':
 
 
     # Define what to run this time
-    dataset = 'sector.scale'
-    ALG = ['SAUC']
+    dataset = 'heart_scale'
+    ALG = ['OAM','SOLAM']
 
     hf = h5py.File('/home/neyo/PycharmProjects/AUC/h5-datasets/%s.h5' % (dataset), 'r')
     FEATURES = hf['FEATURES'][:]
@@ -53,7 +55,7 @@ if __name__ == '__main__':
     res = {}
     for alg in ALG:
         if alg == 'SOLAM':
-            options['T'] = 2000
+            options['T'] = 1000
             res[alg] = SOLAM(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
         elif alg == 'FSAUC':
             res[alg] = FSAUC(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
@@ -66,9 +68,16 @@ if __name__ == '__main__':
         elif alg == 'SPAM':
             options['T'] = 2000
             res[alg] = SPAM(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
-        else:
+        elif alg == 'SAUC':
             options['T'] = 200
             res[alg] = SAUC(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
+        elif alg == 'SAUC_prev':
+            options['T'] = 200
+            res[alg] = SAUC_prev(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
+        elif alg == 'SAUC_new':
+            res[alg] = SAUC_new(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
+        else:
+            print('Wrong Algorithm!')
 
     # Plot results
     fig = plt.figure()  # create a figure object

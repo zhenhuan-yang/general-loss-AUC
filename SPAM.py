@@ -69,8 +69,8 @@ def SPAM(Xtr,Ytr,Xte,Yte,options,stamp=100):
     T = options['T']
     c = options['c']
     R = options['R'] # modified algorithm bounded not regularized
-    theta = options['theta']
-    reg = options['reg']
+    # theta = options['theta']
+    # reg = options['reg']
 
     print('SPAM with R = %.2f c = %.2f' % (R,c))
 
@@ -82,6 +82,9 @@ def SPAM(Xtr,Ytr,Xte,Yte,options,stamp=100):
     wt = np.zeros(d)
     mpt = np.mean(Xtr[Ytr == 1],axis=0)
     mnt = np.mean(Xtr[Ytr == -1],axis=0)
+
+    # restore average wt
+    avgwt = wt + 0.0
 
     # record auc
     roc_auc = []
@@ -123,7 +126,8 @@ def SPAM(Xtr,Ytr,Xte,Yte,options,stamp=100):
 
         # write results
         elapsed_time.append(time.time() - start_time)
-        roc_auc.append(roc_auc_score(Yte, np.dot(Xte, wt)))
+        avgwt = ((t - 1) * avgwt + wt) / t
+        roc_auc.append(roc_auc_score(Yte, np.dot(Xte, avgwt)))
 
         # running log
         if t % stamp == 0:

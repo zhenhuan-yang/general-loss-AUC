@@ -78,7 +78,7 @@ def cv(n, folders, num_cpus, N):
 if __name__ == '__main__':
 
     # Define what to run this time
-    datasets = ['a9a']
+    datasets = ['cod-rna']
     folders = 3
     num_cpus = 15
 
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     options['c'] = 1
 
     # Define Bernstein degree
-    N = [5,10,20]
+    N = [1,5,10,25,50]
 
     for dataset in datasets:
 
@@ -113,20 +113,14 @@ if __name__ == '__main__':
         # Results
         for m in N:
             ROC = np.zeros((folders, options['T']))
-
+            result[(m)] = {}
             for folder in range(folders):
                 ROC[folder] = ROC_AUC[(folder, m)]
 
             result[(m)]['MEAN'] = np.mean(ROC, axis=0)
             result[(m)]['STD'] = np.std(ROC, axis=0)
 
-            ind = np.max(result[(m)]['MEAN'])
-            line.append(result[(m)]['MEAN'][ind])
-            error.append(result[(m)]['STD'][ind])
-
-        plt.errorbar(N,line,yerr=error,fmt='-o')
-
         # Results
         df = pd.DataFrame(result)
 
-        df.to_pickle(r'C:\Users\zy572688\PycharmProjects\AUC\results\deg_%s_%s.h5' % (dataset))
+        df.to_pickle('/home/neyo/PycharmProjects/AUC/results/deg_%s.h5' % (dataset))

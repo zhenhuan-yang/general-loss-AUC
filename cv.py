@@ -9,7 +9,6 @@ import multiprocessing as mp
 from itertools import product
 import pandas as pd
 import h5py
-from math import fabs
 import matplotlib.pyplot as plt
 from SAUC import SAUC
 from OAM import OAM
@@ -17,52 +16,7 @@ from SPAM import SPAM
 from OPAUC import OPAUC
 from SOLAM import SOLAM
 from FSAUC import FSAUC
-
-def split(n, folder, folders):
-
-    '''
-    Split training and testing
-
-    input:
-        n - number of samples
-        folder - number as testing folder
-        folders - number of folders
-
-    output:
-        train_list -
-        test_list -
-    '''
-
-    if folder >= folders:
-        print('Exceed maximum folders!')
-        return
-
-    # regular portion of each folder
-    portion = round(n / folders)
-    start = portion * folder
-    stop = portion * (folder + 1)
-
-    if folders == 1:
-        train_list = [i for i in range(n)]
-        test_list = [i for i in range(n)]
-
-    elif folders == 2:
-        if folder == 0:
-            train_list = [i for i in range(start)] + [i for i in range(stop, n)]
-            test_list = [i for i in range(start, stop)]
-        else:
-            train_list = [i for i in range(start)]
-            test_list = [i for i in range(start, n)]
-
-    else:
-        if fabs(stop - n) < portion:  # remainder occurs
-            train_list = [i for i in range(start)]
-            test_list = [i for i in range(start, n)]
-        else:
-            train_list = [i for i in range(start)] + [i for i in range(stop, n)]
-            test_list = [i for i in range(start, stop)]
-
-    return train_list, test_list
+from split import split
 
 def single_run(para):
 
@@ -154,17 +108,17 @@ def cv(alg, n, folders, num_cpus, C, R):
 if __name__ == '__main__':
 
     # Define what to run this time
-    datasets = ['rcv1_train.binary','real-sim']
-    algs = ['SAUC']
+    datasets = ['liver-disorders_scale','mnist.scale','mushroom','pendigits','satimage','segment','seismic','shuttle']
+    algs = ['OAM','SOLAM','SPAM']
     folders = 3
     num_cpus = 15
 
     # Define hyper parameters
     options = {}
     options['name'] = 'hinge'
-    options['T'] = 200
+    options['T'] = 2000
     options['N'] = 5
-    options['option'] = 'sequential'
+    options['option'] = 'gradient'
     options['sampling'] = 'reservoir'
 
     # Define model parameter
@@ -203,22 +157,13 @@ if __name__ == '__main__':
 
                 result_df[(c, r)] = [np.max(result[(c, r)]['MEAN'])]
 
-                # plt.plot(result[(c, r)]['MEAN'], label='c= %.2f R = %.2f AUC = %.4f' % (c, r, result_df[(c, r)]))
-
             column_ind = np.argmax(result_df.values)
             column = result_df.columns[column_ind]
             ind = np.argmax(result[column]['MEAN'])
             print('alg = %s data = %s c = %.2f R = %.2f AUC = ' % (alg, dataset, column[0], column[1]), end=' ')
             print(('%.4f$\pm$' % result_df[column]).lstrip('0'), end='')
             print(('%.4f' % result[column]['STD'][ind]).lstrip('0'))
-            '''
-            plt.xlabel('Iteration')
-            plt.ylabel('AUC')
-            plt.ylim([.5, 1])
-            plt.legend(loc=4)
-            plt.title('%s_%s' % (alg, dataset))
-            plt.show()
-            '''
+
             # Results
             df = pd.DataFrame(result)
 

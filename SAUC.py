@@ -302,7 +302,7 @@ def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 10):
             bj = bj - eta * gradbt / (2 * (N + 1))
             alphaj = alphaj + eta * gradalphat / (2 * (N + 1))
 
-            wj = proj(wj, L / 2)
+            wj = proj(wj, R)
             aj = proj(aj, R1)
             bj = proj(bj, R2)
             alphaj = proj(alphaj, R1 + R2)

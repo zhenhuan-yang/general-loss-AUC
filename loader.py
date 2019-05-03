@@ -1,3 +1,8 @@
+'''
+Load dataset
+Author: Zhenhuan(Neyo) Yang
+'''
+
 import os, psutil
 import csv
 import numpy as np
@@ -90,7 +95,7 @@ def loader(filename,n = True,f = False,z = False,m = False,s = True):
 
 if __name__ == '__main__':
     #np.random.seed(4)
-    dataset = 'rcv1_train.binary'
+    dataset = 'cod-rna'
     FEATURES,LABELS = loader(dataset)
     print('Write .h5 file......', end=' ')
     hf = h5py.File('/home/neyo/PycharmProjects/AUC/h5-datasets/%s.h5' %(dataset), 'w')
