@@ -101,7 +101,7 @@ def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
                 Spt_hat = Gammapt @ Gammapt.transpose() / Tpt - cpt_hat @ cpt_hat.transpose()
                 cpt = cpt + (Xtr[t % n] - cpt) / Tpt
 
-                cpt_hat = np.outer(cpt,Rpt)/sqrt(tau)
+                cpt_hat = np.outer(cpt,Rpt)/Tpt
                 gwt = -Xtr[t%n] + cnt + (np.outer(Xtr[t%n] - cnt, Xtr[t%n] - cnt) + Snt_hat)@wt
             else:
                 print('Wrong covariance option!')
@@ -120,7 +120,7 @@ def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
                 Snt_hat = Gammant @ Gammant.transpose() / Tnt - cnt_hat @ cnt_hat.transpose()
                 cnt = cnt + (Xtr[t % n] - cnt) / Tnt
 
-                cnt_hat = np.outer(cnt, Rnt) / sqrt(tau)
+                cnt_hat = np.outer(cnt, Rnt) / Tnt
                 gwt = Xtr[t % n] - cpt + (np.outer(Xtr[t % n] - cpt, Xtr[t % n] - cpt) + Spt_hat) @ wt
             else:
                 print('Wrong covariance option!')
