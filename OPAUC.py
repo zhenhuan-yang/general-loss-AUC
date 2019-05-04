@@ -41,18 +41,20 @@ def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
     T = options['T']
     c = options['c']
     R = options['R'] # modified algorithm to be bounded not regularized
-    cov = options['cov']
     tau = options['tau']
 
-    print('OPAUC with covariance = %s R = %.2f c  = %.2f' % (cov,R,c))
+    print('OPAUC with R = %.2f c  = %.2f' % (R,c))
 
     # get the dimension of what we are working with
     n, d = Xtr.shape
+
+    # choose to approximate or not
     if d<tau:
         print('dimension = %d approximation = %d' %(d,tau))
-        return
+        cov = 'full'
     else:
         print('dimension = %d approximation = %d' %(d,tau))
+        cov = 'approximate'
 
     # initialize
     wt = np.zeros(d)

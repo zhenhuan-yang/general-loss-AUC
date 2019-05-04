@@ -7,8 +7,8 @@ import h5py
 import matplotlib.pyplot as plt
 from SOLAM import SOLAM
 from SAUC import SAUC
-from SAUC_prev import SAUC_prev
-from SAUC_new import SAUC_new
+# from SAUC_prev import SAUC_prev
+# from SAUC_new import SAUC_new
 from SPAM import SPAM
 from OAM import OAM
 from OPAUC import OPAUC
@@ -22,7 +22,6 @@ if __name__ == '__main__':
     options['option'] = 'gradient'
     options['sampling'] = 'reservoir'
     options['reg'] = 'l2'
-    options['cov'] = 'approximate'
 
     # Define model parameter
     options['N'] = 10
@@ -31,17 +30,17 @@ if __name__ == '__main__':
     options['Np'] = 100
     options['Nn'] = 100
     options['B'] = 200
-    options['delta'] = .05
+    options['delta'] = .5
     options['lam'] = 1
     options['theta'] = 1
-    options['tau'] = 50
+    options['tau'] = 10
 
 
     # Define what to run this time
-    dataset = 'heart_scale'
-    ALG = ['OAM','SOLAM']
+    dataset = 'phishing'
+    ALG = ['FSAUC']
 
-    hf = h5py.File('/home/neyo/PycharmProjects/AUC/h5-datasets/%s.h5' % (dataset), 'r')
+    hf = h5py.File('/Users/yangzhenhuan/PycharmProjects/AUC/h5-datasets/%s.h5' % (dataset), 'r')
     FEATURES = hf['FEATURES'][:]
     LABELS = hf['LABELS'][:]
     hf.close()
@@ -58,6 +57,7 @@ if __name__ == '__main__':
             options['T'] = 1000
             res[alg] = SOLAM(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
         elif alg == 'FSAUC':
+            options['T'] = 500
             res[alg] = FSAUC(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
         elif alg == 'OAM':
             options['T'] = 1000
@@ -66,16 +66,11 @@ if __name__ == '__main__':
             options['T'] = 1000
             res[alg] = OPAUC(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
         elif alg == 'SPAM':
-            options['T'] = 2000
+            options['T'] = 1000
             res[alg] = SPAM(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
         elif alg == 'SAUC':
             options['T'] = 200
             res[alg] = SAUC(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
-        elif alg == 'SAUC_prev':
-            options['T'] = 200
-            res[alg] = SAUC_prev(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
-        elif alg == 'SAUC_new':
-            res[alg] = SAUC_new(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
         else:
             print('Wrong Algorithm!')
 
@@ -90,4 +85,4 @@ if __name__ == '__main__':
     plt.legend(loc=4)
     plt.show()
 
-    fig.savefig('/home/neyo/PycharmProjects/AUC/results/cp_%s.png' % (dataset))
+    fig.savefig('/Users/yangzhenhuan/PycharmProjects/AUC/results/cp_%s.png' % (dataset))
