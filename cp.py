@@ -5,10 +5,11 @@ Author: Zhenhuan(Neyo) Yang
 
 import h5py
 import matplotlib.pyplot as plt
+from sklearn.datasets import load_svmlight_file
+from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
 from SOLAM import SOLAM
 from SAUC import SAUC
-# from SAUC_prev import SAUC_prev
-# from SAUC_new import SAUC_new
 from SPAM import SPAM
 from OAM import OAM
 from OPAUC import OPAUC
@@ -21,56 +22,59 @@ if __name__ == '__main__':
     options['name'] = 'hinge'
     options['option'] = 'gradient'
     options['sampling'] = 'reservoir'
-    options['reg'] = 'l2'
 
     # Define model parameter
-    options['N'] = 10
+    options['N'] = 5
     options['R'] = 1
     options['c'] = 1
     options['Np'] = 100
     options['Nn'] = 100
-    options['B'] = 200
-    options['delta'] = .5
-    options['lam'] = 1
-    options['theta'] = 1
-    options['tau'] = 10
+    options['delta'] = .1
+    options['tau'] = 50
 
 
     # Define what to run this time
-    dataset = 'phishing'
-    ALG = ['FSAUC']
+    dataset = 'real-sim'
+    ALG = ['OAM']
 
-    hf = h5py.File('/Users/yangzhenhuan/PycharmProjects/AUC/h5-datasets/%s.h5' % (dataset), 'r')
-    FEATURES = hf['FEATURES'][:]
-    LABELS = hf['LABELS'][:]
-    hf.close()
+    print('Loading dataset = %s ......' %(dataset), end=' ')
+    # hf = h5py.File('/home/neyo/PycharmProjects/AUC/h5-datasets/%s.h5' % (dataset), 'r')
+    # X = hf['FEATURES'][:]
+    # y = hf['LABELS'][:]
+    # hf.close()
+
+    X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/datasets/%s' %(dataset))
+
+    X = preprocessing.normalize(X)
+
+    X = X.toarray()
 
     # Simple prepare training and testing
-    n = len(LABELS)
-    testing = [i for i in range(n // 2)]
-    training = [i for i in range(n // 2, n)]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=7)
+
+    print('Done!')
 
     # Prepare results
     res = {}
     for alg in ALG:
         if alg == 'SOLAM':
-            options['T'] = 1000
-            res[alg] = SOLAM(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
+            options['T'] = 2000
+            res[alg] = SOLAM(X_train, X_test, y_train, y_test, options)
         elif alg == 'FSAUC':
             options['T'] = 500
-            res[alg] = FSAUC(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
+            res[alg] = FSAUC(X_train, X_test, y_train, y_test, options)
         elif alg == 'OAM':
-            options['T'] = 1000
-            res[alg] = OAM(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
+            options['T'] = 2000
+            res[alg] = OAM(X_train, X_test, y_train, y_test, options)
         elif alg == 'OPAUC':
-            options['T'] = 1000
-            res[alg] = OPAUC(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
+            options['T'] = 3000
+            res[alg] = OPAUC(X_train, X_test, y_train, y_test, options)
         elif alg == 'SPAM':
-            options['T'] = 1000
-            res[alg] = SPAM(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
+            options['T'] = 3000
+            res[alg] = SPAM(X_train, X_test, y_train, y_test, options)
         elif alg == 'SAUC':
             options['T'] = 200
-            res[alg] = SAUC(FEATURES[training], LABELS[training], FEATURES[testing], LABELS[testing], options)
+            res[alg] = SAUC(X_train, X_test, y_train, y_test, options)
         else:
             print('Wrong Algorithm!')
 
@@ -85,4 +89,4 @@ if __name__ == '__main__':
     plt.legend(loc=4)
     plt.show()
 
-    fig.savefig('/Users/yangzhenhuan/PycharmProjects/AUC/results/cp_%s.png' % (dataset))
+    fig.savefig('/home/neyo/PycharmProjects/AUC/results/cp_%s.png' % (dataset))

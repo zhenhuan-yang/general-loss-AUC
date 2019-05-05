@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import multiprocessing as mp
 import pandas as pd
+from sklearn.datasets import load_svmlight_file
+from sklearn import preprocessing
+from sklearn.utils import shuffle
 from SAUC import SAUC
 from split import split
 
@@ -25,16 +28,16 @@ def single_run(para):
     training, testing = trte
 
     # FEATURES and LABELS must be global here to avoid multiprocessing sharing
-    Xtr = FEATURES[training]
-    Ytr = LABELS[training]
-    Xte = FEATURES[testing]
-    Yte = LABELS[testing]
+    Xtr = X[training]
+    Ytr = y[training]
+    Xte = X[testing]
+    Yte = y[testing]
 
     # Define model parameter
     options['N'] = m
 
     # implement algorithm
-    elapsed_time, roc_auc = SAUC(Xtr, Ytr, Xte, Yte, options)
+    elapsed_time, roc_auc = SAUC(Xtr, Xte, Ytr, Yte, options)
 
     return folder,m,roc_auc
 
@@ -96,13 +99,15 @@ if __name__ == '__main__':
 
     for dataset in datasets:
 
-        # Read data from hdf5 file
-        hf = h5py.File('/home/neyo/PycharmProjects/AUC/h5-datasets/%s.h5' % (dataset), 'r')
-        FEATURES = hf['FEATURES'][:]
-        LABELS = hf['LABELS'][:]
-        hf.close()
+        X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/datasets/%s' % (dataset))
 
-        n = len(LABELS)
+        X = preprocessing.normalize(X)
+
+        X = X.toarray()
+
+        X, y = shuffle(X, y, random_state=7)
+
+        n = len(y)
 
         # Run
         ROC_AUC = cv(n, folders, num_cpus, N)

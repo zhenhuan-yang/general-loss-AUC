@@ -35,7 +35,7 @@ def lookat(alg,dataset,para):
             last1 = df[column]['MEAN'][-1]
             last2 = df[column]['MEAN'][-9]
 
-            if fabs(last1 - last2) > .001 or ind < 25:
+            if fabs(last1 - last2) > .1 or ind < 25:
                 pass
             else:
                 print('c = %.2f R = %.2f AUC = ' % (column[0], column[1]), end=' ')
@@ -44,19 +44,7 @@ def lookat(alg,dataset,para):
 
                 plt.plot(df[column]['MEAN'], label='c= %.2f R = %.2f AUC = %.4f$\pm$%.4f$'
                                                    % (column[0], column[1], df[column]['MEAN'][ind], df[column]['STD'][ind]))
-        # Results
-        # for column in df.columns:
-        #     result[column] = [np.max(df[column]['MEAN'])]
-        #     c = column[0]
-        #     r = column[1]
-        #     plt.plot(df[column]['MEAN'], label='c= %.2f R = %.2f AUC = %.4f$\pm$' % (c, r, result[column]))
-        #
-        # col_ind = np.argmax(result.values)
-        # col = result.columns[col_ind]
-        # ind = np.argmax(df[col]['MEAN'])
-        # print('alg = %s data = %s c = %.2f R = %.2f AUC = ' % (alg, dataset, col[0], col[1]), end=' ')
-        # print(('%.4f$\pm$' % result[col]).lstrip('0'), end='')
-        # print(('%.4f' % df[col]['STD'][ind]).lstrip('0'))
+
         plt.xlabel('Iteration')
         plt.ylabel('AUC')
         plt.ylim([.5, 1])
@@ -94,8 +82,8 @@ def lookat(alg,dataset,para):
 
 if __name__ == '__main__':
 
-    alg = 'OAM'
-    dataset = 'leu'
+    alg = 'SAUC'
+    dataset = 'ijcnn1'
     para = 'bound'
 
     lookat(alg,dataset,para)
