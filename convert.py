@@ -8,6 +8,7 @@ Date : 5/5/19
 from sklearn.datasets import load_svmlight_file, dump_svmlight_file
 from sklearn import preprocessing
 import numpy as np
+import os
 
 if __name__ == '__main__':
 
@@ -20,21 +21,26 @@ if __name__ == '__main__':
                 'shuttle','skin_nonskin','smallNORB','sonar_scale','splice_scale','SUSY','SVHN.scale',
                 'svmguide1','svmguide2','svmguide3','svmguide4','url_combined','usps','vehicle','vowel',
                 'w1a','w2a','w3a','w4a','w5a','w6a','w7a','w8a','wine.scale']
-    
+
     for dataset in datasets:
-        
-        print('Loading dataset = %s......' %(dataset), end = ' ')
-        X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/datasets/%s' % (dataset))
-        
-        print('Done! Converting to binary......', end = ' ')
-        INDEX = np.argwhere(y == max(y))
-        index = np.argwhere(y != max(y))
-        y[INDEX] = 1
-        y[index] = -1
-        
-        print('Done! Normalizing......', end = ' ')
-        X = preprocessing.normalize(X)
-        
-        print('Done! Dumping into file......', end = ' ')
-        dump_svmlight_file(X, y, '/home/neyo/PycharmProjects/AUC/bi-datasets/%s' % (dataset), zero_based=False)
-        print('Done!')
+
+        if os.path.isfile('/home/neyo/PycharmProjects/AUC/datasets/%s' % (dataset)):
+
+            print('Loading dataset = %s......' % (dataset), end=' ')
+            X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/datasets/%s' % (dataset))
+
+            print('Done! Converting to binary......', end=' ')
+            INDEX = np.argwhere(y == max(y))
+            index = np.argwhere(y != max(y))
+            y[INDEX] = 1
+            y[index] = -1
+
+            print('Done! Normalizing......', end=' ')
+            X = preprocessing.normalize(X)
+
+            print('Done! Dumping into file......', end=' ')
+            dump_svmlight_file(X, y, '/home/neyo/PycharmProjects/AUC/bi-datasets/%s' % (dataset), zero_based=False)
+            print('Done!')
+
+        else:
+            pass
