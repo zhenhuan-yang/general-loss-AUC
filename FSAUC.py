@@ -12,11 +12,9 @@ from sklearn.metrics import roc_auc_score
 def proj_sim(v,R):
     '''
     projection onto simplex by Duchi et al.
-
     input:
         v -
         R - radius
-
     output:
         w -
     '''
@@ -38,12 +36,10 @@ def proj_sim(v,R):
 def proj_l2(v,o,R):
     '''
     Projection onto eccentric l2 ball
-
     input:
         v -
         o - center
         R - radius
-
     output:
         w - projected
     '''
@@ -61,11 +57,9 @@ def proj_l2(v,o,R):
 def proj_primal(w,a,b,o,r,R,kappa):
     '''
     Alternating Projection Algorithm
-
     input:
         v -
         R - radius
-
     output:
         w -
     '''
@@ -119,10 +113,9 @@ def proj_dual(alpha,o,D,R,kappa):
 
     return alpha
 
-def FSAUC(Xtr,Ytr,Xte,Yte,options,stamp=10):
+def FSAUC(Xtr,Xte,Ytr,Yte,options,stamp=10):
     '''
     Fast Stochastic AUC Maximization
-
     input:
         n - total iteration
         Xtr -
@@ -130,7 +123,6 @@ def FSAUC(Xtr,Ytr,Xte,Yte,options,stamp=10):
         Xte -
         Yte -
         options -
-
     output:
         Wt -
     '''
@@ -144,7 +136,8 @@ def FSAUC(Xtr,Ytr,Xte,Yte,options,stamp=10):
     print('FSAUC with R = %.2f c = %.2f delta = %.2f' % (R, c, delta))
 
     # normalized data
-    kappa = max(np.linalg.norm(Xtr, axis=1))
+    # kappa = max(np.linalg.norm(Xtr, axis=1))
+    kappa = 1
 
     # get the dimension of what we are working with
     N, d = Xtr.shape
@@ -281,11 +274,9 @@ def FSAUC(Xtr,Ytr,Xte,Yte,options,stamp=10):
 def proj_l1(v,R):
     '''
     Projection onto l1 ball by Duchi et al
-
     input:
         v - vector
         R - radius
-
     output:
         w - projected
     '''
@@ -326,7 +317,6 @@ def proj_l1(v,R):
 def alt_proj_dual(alpha, o, D, R, kappa):
     '''
     Alternate projection
-
     '''
 
     l1alpha = fabs(alpha)
@@ -344,11 +334,9 @@ def alt_proj_dual(alpha, o, D, R, kappa):
 def alt_proj_primal(w,a,b,o,r,R,kappa):
     '''
     Alternating Projection Algorithm
-
     input:
         v -
         R - radius
-
     output:
         w -
     '''

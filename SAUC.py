@@ -198,7 +198,7 @@ def proj(x, R):
         x = x / norm * R
     return x
 
-def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 10):
+def SAUC(Xtr,Xte,Ytr,Yte,options,stamp = 10):
     '''
     Stochastic AUC Optimization with General Loss
 
@@ -224,7 +224,7 @@ def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 10):
     name = options['name']
     N = options['N']
     R = options['R']
-    L = 2 * R * max(np.linalg.norm(Xtr, axis=1))
+    L = 2 * R #* max(np.linalg.norm(Xtr, axis=1))
     c = options['c']
     # B = options['B']
     # sampling = options['sampling']
@@ -280,7 +280,7 @@ def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 10):
 
             index = (t * (t - 1) // 2 + j) % n
 
-            prod = wj @ Xtr[index]
+            prod = Xtr[index] @ wj
 
             fpt, gfpt = pos(N, prod, L)
             fnt, gfnt = neg(N, prod, L, beta, gbeta)

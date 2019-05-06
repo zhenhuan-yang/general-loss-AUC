@@ -67,7 +67,7 @@ def reservior(Bt,t,N,M):
 
     return Bt
 
-def OAM(Xtr,Ytr,Xte,Yte,options,stamp = 100):
+def OAM(Xtr,Xte,Ytr,Yte,options,stamp = 10):
     '''
     Online AUC Maximization
     input:

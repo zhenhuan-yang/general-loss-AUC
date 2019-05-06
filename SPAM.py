@@ -51,7 +51,7 @@ def prox_net(x,lam,theta,eta):
 
     return x
 
-def SPAM(Xtr,Ytr,Xte,Yte,options,stamp=100):
+def SPAM(Xtr,Xte,Ytr,Yte,options,stamp=10):
     '''
     Stochastic Proximal AUC Maximization
     input:

@@ -23,7 +23,7 @@ def proj(x, R):
         x = x / norm * R
     return x
 
-def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
+def OPAUC(Xtr,Xte,Ytr,Yte, options,stamp = 10):
     '''
     One-Pass AUC Optimization
     input:
@@ -43,17 +43,15 @@ def OPAUC(Xtr, Ytr, Xte, Yte, options,stamp = 100):
     R = options['R'] # modified algorithm to be bounded not regularized
     tau = options['tau']
 
-    print('OPAUC with R = %.2f c  = %.2f' % (R,c))
-
     # get the dimension of what we are working with
     n, d = Xtr.shape
 
     # choose to approximate or not
     if d<tau:
-        print('dimension = %d approximation = %d' %(d,tau))
+        print('OPAUC with R = %.2f c  = %.2f dimension = %d' % (R, c, d))
         cov = 'full'
     else:
-        print('dimension = %d approximation = %d' %(d,tau))
+        print('OPAUC with R = %.2f c  = %.2f dimension = %d tau = %d' %(R,c,d,tau))
         cov = 'approximate'
 
     # initialize

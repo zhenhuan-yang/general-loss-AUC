@@ -22,7 +22,7 @@ def proj(x, R):
         x = x / norm * R
     return x
 
-def SOLAM(Xtr, Ytr, Xte, Yte, options,stamp = 1000):
+def SOLAM(Xtr,Xte,Ytr,Yte, options,stamp = 10):
     '''
     Stochastic Online AUC Maximization
     input:
@@ -40,7 +40,7 @@ def SOLAM(Xtr, Ytr, Xte, Yte, options,stamp = 1000):
     T = options['T']
     c = options['c']
     R = options['R']
-    L = 2 * R * max(np.linalg.norm(Xtr, axis=1))
+    L = 2 * R # * max(np.linalg.norm(Xtr, axis=1))
 
     print('SOLAM with R = %.2f c = %.2f' % (R,c))
 
