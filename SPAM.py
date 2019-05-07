@@ -100,7 +100,6 @@ def SPAM(Xtr,Xte,Ytr,Yte,options,stamp=10):
 
         # compute inner product
         prod = np.inner(wt, Xtr[t % n])
-
         # compute a,b,alpha
         at = np.inner(wt, mpt)
         bt = np.inner(wt, mnt)

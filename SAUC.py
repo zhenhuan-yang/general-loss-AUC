@@ -5,7 +5,7 @@ Date: 4/8/19
 '''
 
 import numpy as np
-from math import fabs, sqrt, log, exp, factorial
+from math import factorial
 import time
 from sklearn.metrics import roc_auc_score
 
@@ -55,9 +55,9 @@ def bound(N, loss, L, comb_dict):
             for j in range(k + 1):
                 delta += comb_dict[k][j] * (-1) ** (k - j) * loss(j / N)
             # compute coefficient
-            beta0 += comb_dict[N][k] * comb_dict[k][i] * (N + 1) * fabs(delta) / (2 ** k) / (L ** i)
-            beta1 += comb_dict[N][k] * comb_dict[k][i] * (N + 1) * (k - i) * fabs(delta) / (2 ** k) / (L ** (i + 1))
-            beta2 += comb_dict[N][k] * comb_dict[k][i] * (N + 1) * (k - i) * (k - i - 1) * fabs(delta) / (2 ** k) / (
+            beta0 += comb_dict[N][k] * comb_dict[k][i] * (N + 1) * abs(delta) / (2 ** k) / (L ** i)
+            beta1 += comb_dict[N][k] * comb_dict[k][i] * (N + 1) * (k - i) * abs(delta) / (2 ** k) / (L ** (i + 1))
+            beta2 += comb_dict[N][k] * comb_dict[k][i] * (N + 1) * (k - i) * (k - i - 1) * abs(delta) / (2 ** k) / (
                         L ** (i + 2))
         R2 += beta0
         Sm1 += beta1
@@ -78,11 +78,9 @@ def bern_loss_func(name, L):
 
     '''
     Define loss function
-
     input:
         name - name of loss funtion
         L - bound for prod
-
     output:
         loss - loss function
     '''
@@ -90,7 +88,7 @@ def bern_loss_func(name, L):
     if name == 'hinge':
         loss = lambda x: max(0, 1 + L - 2 * L * x)
     elif name == 'logistic':
-        loss = lambda x: log(1 + exp(L - 2 * L * x))
+        loss = lambda x: np.log(1 + np.exp(L - 2 * L * x))
     elif name == 'sign':
         loss = lambda x: sign(2 * L * x - L)
     else:
@@ -101,12 +99,10 @@ def bern_loss_func(name, L):
 def pos(N, prod, L):
     '''
     Compute positive function and gradient information
-
     input:
         i - index of function
         prod - wt*xt
         L - bound on prod
-
     output:
         fpt - positive function value
         gfpt - positive function gradient
@@ -185,11 +181,9 @@ def neg(N, prod, L, beta, gbeta):
 def proj(x, R):
     '''
     Projection
-
     input:
         x -
         R - radius
-
     output:
         proj - projected
     '''
@@ -201,7 +195,6 @@ def proj(x, R):
 def SAUC(Xtr,Xte,Ytr,Yte,options,stamp = 10):
     '''
     Stochastic AUC Optimization with General Loss
-
     input:
         T -
         name -
@@ -213,7 +206,6 @@ def SAUC(Xtr,Xte,Ytr,Yte,options,stamp = 10):
         Xte - Testing features
         Yte - Testing labels
         stamp - record stamp
-
     output:
         elapsed_time -
         roc_auc - auc scores
@@ -273,7 +265,7 @@ def SAUC(Xtr,Xte,Ytr,Yte,options,stamp = 10):
         BALPHAt = 0.0
 
         # step size
-        eta = c / sqrt(t) / gamma
+        eta = c / np.sqrt(t) / gamma
 
         # inner loop update at j
         for j in range(t):
