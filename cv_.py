@@ -137,7 +137,7 @@ if __name__ == '__main__':
 
             # Results
             for c, r in product(C, R):
-                ROC = np.zeros(n_splits*n_splits)
+                ROC = np.zeros(n_splits*n_repeats)
                 result[(c, r)] = {}
                 for i in range(n_splits*n_repeats):
                     ROC[i] = max(ROC_AUC[(i, c, r)])
