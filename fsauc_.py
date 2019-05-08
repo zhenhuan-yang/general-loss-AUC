@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Nov  6 09:25:13 2018
-
 @author: Zhenhuan Yang
-
 # -*- coding: utf-8 -*-
 Spyder Editor
-
 We apply the algorithm in Liu, 2018 ICML to do Fast AUC maximization
-
 Input:
     x_tr: training instances
     y_tr: training labels
@@ -29,16 +25,17 @@ import numpy as np
 from sklearn.metrics import roc_auc_score
 import time
 
+
 def FSAUC(x_tr, x_te, y_tr, y_te, options):
     # options
     delta = options['delta']
-    dd = np.log(12 / delta) # a term in D and beta
+    dd = np.log(12 / delta)  # a term in D and beta
     ids = options['ids']
     n_ids = len(ids)
     c = options['c']
     R = options['R']  # beta is the parameter R, we use beta for consistency
     n, d = x_tr.shape
-    v_1, alpha_1 = np.zeros(d+2), 0
+    v_1, alpha_1 = np.zeros(d + 2), 0
     sp = 0  # the estimate of probability with positive example
     t = 0  # the time iterate"
     time_s = 0
@@ -60,7 +57,7 @@ def FSAUC(x_tr, x_te, y_tr, y_te, options):
     # we have normalized the data
     m = int(0.5 * np.log2(2 * n_ids / np.log2(n_ids))) - 1
     n0 = int(n_ids / m)
-    r = 2 * np.sqrt(3) * R # R0
+    r = 2 * np.sqrt(3) * R  # R0
     # G = max(5 * (R + 1), 2  * (4 * R + 1), 2 * (15 * R + 1)) * c
     beta = 9
     D = 2 * np.sqrt(2) * r
@@ -75,27 +72,27 @@ def FSAUC(x_tr, x_te, y_tr, y_te, options):
     # loop iterates k and kk are independent of data iterate t
     # as data iterate is preassigned by get_idx
     for k in range(m):
-        
+
         v_sum = np.zeros(d + 2)
         v, alpha = v_1, alpha_1
-        for kk in range(n0): 
+        for kk in range(n0):
             x_t = x_tr[ids[t]]
             y_t = y_tr[ids[t]]
             prod = np.inner(x_t, v[:d])
             if y_t == 1:
                 sp = sp + 1
-                p = sp / (t + 1) # not while loop 
+                p = sp / (t + 1)  # not while loop
                 Ap = Ap + x_t
                 gradvt[:d] = (1 - p) * (prod - v[d] - 1 - alpha) * x_t
                 gradvt[d] = (p - 1) * (prod - v[d])
-                gradvt[d+1] = 0
+                gradvt[d + 1] = 0
                 gradalphat = (p - 1) * (prod + p * alpha)
             else:
                 p = sp / (t + 1)
                 An = An + x_t
-                gradvt[:d] = p * (prod - v[d+1] + 1 + alpha) * x_t
+                gradvt[:d] = p * (prod - v[d + 1] + 1 + alpha) * x_t
                 gradvt[d] = 0
-                gradvt[d+1] = p * (v[d+1] - prod)
+                gradvt[d + 1] = p * (v[d + 1] - prod)
                 gradalphat = p * (prod + (p - 1) * alpha)
 
             t = t + 1
@@ -108,9 +105,9 @@ def FSAUC(x_tr, x_te, y_tr, y_te, options):
             tnm = np.abs(v[d])
             if tnm > R:
                 v[d] = v[d] * (R / tnm)
-            tnm = np.abs(v[d+1])
+            tnm = np.abs(v[d + 1])
             if tnm > R:
-                v[d+1] = v[d+1] * (R / tnm)
+                v[d + 1] = v[d + 1] * (R / tnm)
             tnm = np.abs(alpha)
             if tnm > 2 * R:
                 alpha = alpha * (2 * R / tnm)
@@ -183,4 +180,3 @@ def ProjectOntoL1Ball(v, b):
         thc = (sv[rho] - b) / (rho + 1)
         w = np.sign(v) * np.maximum(nm - thc, 0)
     return w
-

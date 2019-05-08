@@ -34,8 +34,8 @@ if __name__ == '__main__':
 
 
     # Define what to run this time
-    dataset = 'usps'
-    ALG = ['SAUC','OAM']
+    dataset = 'a9a'
+    ALG = ['OAM']
 
     print('Loading dataset = %s ......' %(dataset), end=' ')
     # hf = h5py.File('/home/neyo/PycharmProjects/AUC/h5-datasets/%s.h5' % (dataset), 'r')

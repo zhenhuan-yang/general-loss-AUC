@@ -361,7 +361,7 @@ def SAUC(Xtr,Xte,Ytr,Yte,options,stamp = 10):
     print('SAUC with loss = %s N = %d R = %d gamma = %.02f c = %d' % (name, N, R, gamma, c))
 
     # restore average wt
-    avgwt = WT + 0.0
+    # avgwt = WT + 0.0
 
     # record auc
     roc_auc = []
@@ -370,6 +370,7 @@ def SAUC(Xtr,Xte,Ytr,Yte,options,stamp = 10):
 
     # record time elapsed
     elapsed_time = []
+    elapsed = 0
     start_time = time.time()
 
     # Begin algorithm
@@ -445,12 +446,17 @@ def SAUC(Xtr,Xte,Ytr,Yte,options,stamp = 10):
         BT = BBt / t
         ALPHAT = BALPHAt / t
 
-        elapsed_time.append(time.time() - start_time)
-        avgwt = ((t - 1) * avgwt + WT) / t
+        stop_time = time.time()
 
-        roc_auc.append(roc_auc_score(Yte, Xte @ avgwt))
+        elapsed += stop_time - start_time
+        elapsed_time.append(elapsed)
+        # avgwt = ((t - 1) * avgwt + WT) / t
+
+        roc_auc.append(roc_auc_score(Yte, Xte @ WT))
 
         if t % stamp == 0:
             print('iteration: %d AUC: %.6f time elapsed: %.2f' % (t, roc_auc[-1], elapsed_time[-1]))
+
+        start_time = time.time()
 
     return elapsed_time, roc_auc
