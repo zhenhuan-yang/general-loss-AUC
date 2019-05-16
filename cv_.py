@@ -102,17 +102,19 @@ def cv(alg, num_cpus, n_splits, n_repeats, C, R):
 if __name__ == '__main__':
 
     # Define what to run this time
-    datasets = ['a1a']
-    algs = ['SOLAM','SPAM']
-    num_cpus = 3
-    n_splits = 2
-    n_repeats = 2
+    datasets = ['smallNORB']
+    algs = ['SOLAM']
+    num_cpus = 15
+    n_splits = 3
+    n_repeats = 1
 
     # Define hyper parameters
     options = {}
     options['name'] = 'hinge'
-    options['m'] = 5
-    options['n_pass'] = 1
+    options['m'] = 1
+    options['delta'] = .1
+    options['tau'] = 50
+    options['n_pass'] = 3
     options['rec'] = .5
 
     # Define model parameter
@@ -120,36 +122,44 @@ if __name__ == '__main__':
     options['Nn'] = 100
 
     # Define model parameter to search
-    R = [100,1000]
-    C = [1]
-
+    # R = [2**i for i in range(-2,-1)] + [3**i for i in range(-2,-1)] + [5**i for i in range(-2,-1)]
+    R = [10**i for i in range(1,2)]
+    # C = [2**i for i in range(-3,4)] + [3**i for i in range(-3,4)] + [5**i for i in range(-2,3)]
+    C = [10**i for i in range(1,2)]
     for dataset in datasets:
 
         print('Loading dataset = %s ......' %(dataset), end=' ')
-        X, y = load_svmlight_file('/Users/yangzhenhuan/PycharmProjects/AUC/bi-datasets/%s' % (dataset))
+        X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/bi-datasets/%s' % (dataset))
         X = X.toarray()
-        X, y = shuffle(X, y, random_state = 7)
+        X, y = shuffle(X, y, random_state = 10)
         print('Done!')
 
         for alg in algs:
-            ROC_AUC = cv(alg, num_cpus, n_splits, n_repeats, C, R)
+
+            # Run
+            roc_auc = cv(alg, num_cpus, n_splits, n_repeats, C, R)
             result = {}
 
             # Results
             for c, r in product(C, R):
-                ROC = np.zeros(n_splits*n_repeats)
                 result[(c, r)] = {}
-                for i in range(n_splits*n_repeats):
-                    ROC[i] = max(ROC_AUC[(i, c, r)])
+                # find minimal recorded length
+                L = np.zeros(n_splits * n_repeats)
+                for i in range(n_splits * n_repeats):
+                    L[i] = len(roc_auc[(i,c,r)])
+                l = int(min(L))
+                cv_roc_auc = np.zeros((n_splits * n_repeats, l))
+                for i in range(n_splits * n_repeats):
+                    cv_roc_auc[i] = roc_auc[(i, c, r)][:l]
 
-                result[(c, r)]['MEAN'] = np.mean(ROC)
-                result[(c, r)]['STD'] = np.std(ROC)
+                result[(c, r)]['MEAN'] = np.mean(cv_roc_auc, axis=0)
+                result[(c, r)]['STD'] = np.std(cv_roc_auc, axis=0)
 
                 print('alg = %s data = %s c = %.2f R = %.2f AUC = ' % (alg, dataset, c, r), end=' ')
-                print(('%.4f$\pm$' % result[(c,r)]['MEAN']).lstrip('0'), end='')
-                print(('%.4f' % result[(c,r)]['STD']).lstrip('0'))
+                print(('%.4f$\pm$' % max(result[(c,r)]['MEAN'])).lstrip('0'), end='')
+                print(('%.4f' % min(result[(c,r)]['STD'])).lstrip('0'))
 
             # Results
             df = pd.DataFrame(result)
 
-            df.to_pickle('/Users/yangzhenhuan/PycharmProjects/AUC/results/cv_%s_%s.h5' % (alg, dataset))
+            df.to_pickle('/home/neyo/PycharmProjects/AUC/results/cv_%s_%s.h5' % (alg, dataset))

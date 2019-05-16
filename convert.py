@@ -12,15 +12,7 @@ import os
 
 if __name__ == '__main__':
 
-    datasets = ['a1a','a2a','a3a','a4a','a5a','a6a','a7a','a8a','a9a','acoustic','australian_scale','avazu-app',
-                'breast-cancer_scale','cifar10','cod-rna','combined_scale','connect-4','covtype.libsvm.binary.scale',
-                'diabetes_scale','dna','epsilon_normalized','fourclass_scale','german.numer_scale','gisette_scale','glass',
-                'heart_scale','HIGGS','ijcnn1','ionosphere_scale','iris','letter','leu','liver-disorders_scale',
-                'madelon','mnist.scale','mnist8m.scale','mushroom','news20.binary','pendigits','poker','protein',
-                'rcv1_train.binary','real-sim','satimage','sector','sector.scale','segment','seismic','sensorless',
-                'shuttle','skin_nonskin','smallNORB','sonar_scale','splice_scale','SUSY','SVHN.scale',
-                'svmguide1','svmguide2','svmguide3','svmguide4','url_combined','usps','vehicle','vowel',
-                'w1a','w2a','w3a','w4a','w5a','w6a','w7a','w8a','wine.scale']
+    datasets = ['rcv1_train.multiclass']
 
     for dataset in datasets:
 
@@ -30,8 +22,9 @@ if __name__ == '__main__':
             X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/datasets/%s' % (dataset))
 
             print('Done! Converting to binary......', end=' ')
-            INDEX = np.argwhere(y == max(y))
-            index = np.argwhere(y != max(y))
+            m = np.mean(y)
+            INDEX = np.argwhere(y > m)
+            index = np.argwhere(y <= m)
             y[INDEX] = 1
             y[index] = -1
 

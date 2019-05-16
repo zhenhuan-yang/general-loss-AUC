@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Tue Nov  6 09:25:13 2018
 @author: Zhenhuan Yang
@@ -67,6 +66,7 @@ def FSAUC(x_tr, x_te, y_tr, y_te, options):
     # pred = y_te
     gradvt = np.zeros(d + 2)
 
+    print('FSAUC with R = %d c = %d delta = %.2f' % (R, c, delta))
     start = time.time()
 
     # loop iterates k and kk are independent of data iterate t

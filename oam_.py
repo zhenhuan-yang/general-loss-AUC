@@ -1,11 +1,7 @@
-# -*- coding: utf-8 -*-
 """
 Created on Fri Nov 16 15:53:25 2018
-
 @author: Zhenhuan Yang
-
 We apply the algorithm in Zhao, 2011 ICML to do AUC maximization
-
 Input:
     x_tr: training instances
     y_tr: training labels
@@ -46,7 +42,10 @@ def OAM(x_tr, x_te, y_tr, y_te, options):
 
     # -------------------------------
     # for storing the results
-    avgwt = np.zeros(d)
+    w_sum = np.zeros(d)
+    eta_sum = 0
+    w_sum_old = w_sum
+    eta_sum_old = 0
     n_pass = options['n_pass']
     res_idx = 2 ** (np.arange(4, np.log2(n_pass * n), options['rec']))
     res_idx[-1] = n_pass * n  # make sure the last step recorded
@@ -56,6 +55,7 @@ def OAM(x_tr, x_te, y_tr, y_te, options):
     elapsed_time = np.zeros(n_idx)
     i_res = 0
     # ------------------------------
+    print('OAM with R = %d c = %d Np = %d Nn = %d' % (R, c, Np, Nn))
 
     start = time.time()
     while t < T:
@@ -89,14 +89,14 @@ def OAM(x_tr, x_te, y_tr, y_te, options):
             wt = wt * (R / tnm)
 
         t = t + 1
-
-        # update output
-        avgwt = ((t - 1) * avgwt + wt) / t
+        w_sum = w_sum + wt
+        eta_sum += 1
 
         if res_idx[i_res] == t:
             stop = time.time()
             time_s += stop - start
-            pred = x_te @ avgwt
+            w_ave = (w_sum - w_sum_old) / (eta_sum - eta_sum_old)
+            pred = x_te @ w_ave
             if not np.all(np.isfinite(pred)):
                 break
 
@@ -104,7 +104,8 @@ def OAM(x_tr, x_te, y_tr, y_te, options):
             elapsed_time[i_res] = time_s
 
             print('iteration: %d AUC: %.6f time eplapsed: %.2f' % (t, roc_auc[i_res], elapsed_time[i_res]))
-
+            w_sum_old = w_sum
+            eta_sum_old = eta_sum
             i_res += 1
 
             start = time.time()

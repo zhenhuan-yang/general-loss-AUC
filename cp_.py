@@ -3,7 +3,6 @@ Convergence plot
 Author: Zhenhuan(Neyo) Yang
 '''
 
-import h5py
 import matplotlib.pyplot as plt
 from sklearn.datasets import load_svmlight_file
 from sklearn.model_selection import train_test_split
@@ -20,7 +19,7 @@ if __name__ == '__main__':
     # Define hyper parameters
     options = {}
     options['name'] = 'hinge'
-    options['n_pass'] = 1
+    options['n_pass'] = 2
     options['rec'] = 0.5  # record when
 
     # Define model parameter
@@ -34,8 +33,8 @@ if __name__ == '__main__':
 
 
     # Define what to run this time
-    dataset = 'a9a'
-    ALG = ['OAM']
+    dataset = 'cod-rna'
+    ALG = ['SPAM']
 
     print('Loading dataset = %s ......' %(dataset), end=' ')
     # hf = h5py.File('/home/neyo/PycharmProjects/AUC/h5-datasets/%s.h5' % (dataset), 'r')
@@ -43,10 +42,10 @@ if __name__ == '__main__':
     # y = hf['LABELS'][:]
     # hf.close()
 
-    X, y = load_svmlight_file('/Users/yangzhenhuan/PycharmProjects/AUC/bi-datasets/%s' %(dataset))
+    X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/bi-datasets/%s' %(dataset))
     X = X.toarray()
     # Simple prepare training and testing
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=7)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=7)
     n_tr = len(y_train)
     options['ids'] = get_idx(n_tr, options['n_pass'])
     print('Done!')
@@ -80,4 +79,4 @@ if __name__ == '__main__':
     plt.legend(loc=4)
     plt.show()
 
-    fig.savefig('/Users/yangzhenhuan/PycharmProjects/AUC/results/cp_%s.png' % (dataset))
+    fig.savefig('/home/neyo/PycharmProjects/AUC/results/cp_%s.png' % (dataset))

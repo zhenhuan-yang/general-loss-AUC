@@ -1,30 +1,25 @@
-# -*- coding: utf-8 -*-
 """
 Created on Tue Nov  6 09:25:13 2018
-
 @author: Zhenhuan Yang
-
 # -*- coding: utf-8 -*-
 Spyder Editor
-
 We apply the algorithm in Gao, 2013 ICML to do AUC maximization
-
 Input:
     x_tr: training instances
     y_tr: training labels
     x_te: testing instances
     y_te: testing labels
-    options: a dictionary 
+    options: a dictionary
         'ids' stores the indices of examples traversed, ids divided by # of training examples is the # of passes
         'eta' stores the initial step size
-        'beta': the L2 parameter 
+        'beta': the L2 parameter
         'n_pass': the number of passes
         'time_lim': optional argument, the maximal time allowed
 Output:
     roc_auc: results on iterates indexed by res_idx
     time:
 """
-# https://stackoverflow.com/questions/22053050/difference-between-numpy-array-shape-r-1-and-r singleton 
+# https://stackoverflow.com/questions/22053050/difference-between-numpy-array-shape-r-1-and-r singleton
 import numpy as np
 from sklearn.metrics import roc_auc_score
 import time
@@ -43,7 +38,7 @@ def OPAUC(x_tr, x_te, y_tr, y_te, options):
     t = 0  # the time iterate"
     time_s = 0
     sx_pos = np.zeros(d)  # summation of positive instances
-    sx_neg = np.zeros(d)  # summation of negative instances 
+    sx_neg = np.zeros(d)  # summation of negative instances
     smat_pos = np.zeros((d, d))
     smat_neg = np.zeros((d, d))
     cpt = sx_pos  # average of positive instances
@@ -64,7 +59,7 @@ def OPAUC(x_tr, x_te, y_tr, y_te, options):
     elapsed_time = np.zeros(n_idx)
     i_res = 0
     # ------------------------------
-
+    print('OPAUC with R = %d c = %d' % (beta, eta))
     start = time.time()
     while t < len(ids):
         # print(ids[t])
@@ -78,7 +73,7 @@ def OPAUC(x_tr, x_te, y_tr, y_te, options):
             smat_pos = smat_pos + (x_t.T).dot(x_t)
             minus = x_t - cnt
             if sp == t:
-                gd = 0  # beta * w + (tmp - 1) * (x_t - cnt) + np.dot(w, - (cnt.T).dot(cnt)) 
+                gd = 0  # beta * w + (tmp - 1) * (x_t - cnt) + np.dot(w, - (cnt.T).dot(cnt))
             else:
                 gd = (np.inner(minus, w) - 1) * minus + np.dot(w, 1 / (t - sp) * smat_neg - (cnt.T).dot(cnt))
         else:
@@ -87,12 +82,12 @@ def OPAUC(x_tr, x_te, y_tr, y_te, options):
             smat_neg = smat_neg + (x_t.T).dot(x_t)
             minus = x_t - cpt
             if sp == 0:
-                gd = 0  # beta * w + (tmp + 1) * (x_t - cpt) + np.dot(w, - (cpt.T).dot(cpt)) 
+                gd = 0  # beta * w + (tmp + 1) * (x_t - cpt) + np.dot(w, - (cpt.T).dot(cpt))
             else:
                 gd = (np.inner(minus, w) + 1) * minus + np.dot(w, 1 / sp * smat_pos - (cpt.T).dot(cpt))
 
         # print("P=%s" % p)
-        #        print(gd)    
+        #        print(gd)
         #        eta = eta_0 / (np.sqrt(t))
         # we use normalization
         w = w - eta * gd

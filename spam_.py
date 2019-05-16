@@ -1,14 +1,9 @@
-# -*- coding: utf-8 -*-
 """
 Created on Tue May  6 09:25:13 2019
-
 @author: Zhenhuan Yang
-
 # -*- coding: utf-8 -*-
 Spyder Editor
-
 We apply the algorithm in Natole, 2018 ICML to do AUC maximization
-
 Input:
     x_tr: training instances
     y_tr: training labels
@@ -23,7 +18,6 @@ Input:
 Output:
     roc_auc: results on iterates indexed by res_idx
     elapsed_time:
-
 """
 import numpy as np
 from sklearn.metrics import roc_auc_score
@@ -61,7 +55,7 @@ def SPAM(x_tr, x_te, y_tr, y_te, options):
     elapsed_time = np.zeros(n_idx)
     i_res = 0
     # ------------------------------
-
+    print('SPAM with R = %d c = %d' % (R, c))
     start = time.time()
 
     while t < T:

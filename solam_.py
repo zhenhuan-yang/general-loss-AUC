@@ -1,14 +1,9 @@
-# -*- coding: utf-8 -*-
 """
 Created on Tue May  6 09:25:13 2019
-
 @author: Zhenhuan Yang
-
 # -*- coding: utf-8 -*-
 Spyder Editor
-
 We apply the algorithm in Ying, 2016 NIPS to do AUC maximization
-
 Input:
     x_tr: training instances
     y_tr: training labels
@@ -23,7 +18,6 @@ Input:
 Output:
     aucs: results on iterates indexed by res_idx
     time:
-
 auc_solam_L2 is the original implementation in Ying 2016, NIPS
 auc_solam_L2: is the variant with stochastic proximal AUC maximization, L2 regularizer is processed analogously by natole 2018 ICML
 """
@@ -65,7 +59,7 @@ def SOLAM(x_tr, x_te, y_tr, y_te, options):
     elapsed_time = np.zeros(n_idx)
     i_res = 0
     # ------------------------------
-
+    print('SOLAM with R = %d c = %d' % (R, c))
     start = time.time()
     while t < T:
 
@@ -136,4 +130,3 @@ def SOLAM(x_tr, x_te, y_tr, y_te, options):
             start = time.time()
 
     return elapsed_time, roc_auc
-

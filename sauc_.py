@@ -1,14 +1,9 @@
-# -*- coding: utf-8 -*-
 """
 Created on Tue Nov  6 09:25:13 2018
-
 @author: Zhenhuan Yang
-
 # -*- coding: utf-8 -*-
 Spyder Editor
-
 We apply the algorithm in Yang, 2019 NIPS to do Fast AUC maximization
-
 Input:
     x_tr: training instances
     y_tr: training labels
@@ -29,129 +24,6 @@ import numpy as np
 from math import factorial
 from sklearn.metrics import roc_auc_score
 import time
-
-
-def SAUC_(x_tr, x_te, y_tr, y_te, options):
-
-    # options
-    ids = options['ids']
-    n_ids = len(ids)
-    T = int((-1+np.sqrt(1+8*n_ids))/2) - 1 # outer loop iterations
-    m = options['m']
-    name = options['name']
-    R = options['R']
-    loss = loss_func(name,2 * R)
-    c = options['c']
-    # compute combinations and coefficients
-    comb_dict = comb(m)
-    beta, gbeta = coef(m, loss, 2 * R, comb_dict)
-    # compute gamma
-    R1, R2, gamma = bound(m, loss, 2 * R, comb_dict)
-    # initialization
-    n, d = x_tr.shape
-    WT = np.zeros(d)
-    AT = np.zeros(m + 1)
-    BT = np.zeros(m + 1)
-    ALPHAT = np.zeros(m + 1)
-
-    series = np.arange(1, T + 1, 1)
-    etas = c / (np.sqrt(series)) / gamma
-    t = 0  # the time iterate
-    time_s = 0
-
-    # for storing the results
-
-    n_pass = options['n_pass']
-    res_idx = 2 ** (np.arange(4, np.log2(n_pass * T * (T+1) / 2), options['rec']))
-    res_idx[-1] = n_pass * T * (T+1) / 2  # make sure the last step recorded
-    res_idx = [int(i) for i in res_idx]  # map(int, res_idx)
-    n_idx = len(res_idx)
-    roc_auc = np.zeros(n_idx)
-    elapsed_time = np.zeros(n_idx)
-    i_res = 0
-
-    start = time.time()
-    for k in range(T):
-        eta = etas[k]
-        wj = WT + 0
-        aj = AT + 0
-        bj = BT + 0
-        alphaj = ALPHAT + 0
-
-        bwj = np.zeros(d)
-        baj = np.zeros(m + 1)
-        bbj = np.zeros(m + 1)
-        balphaj = np.zeros(m + 1)
-
-        for j in range(k):
-            x_t = x_tr[ids[t]]
-            y_t = y_tr[ids[t]]
-            t += 1
-            prod = np.inner(x_t, wj)
-
-            fpt, gfpt = pos(m, prod, 2 * R)
-            fnt, gfnt = neg(m, prod, 2 * R, beta, gbeta)
-
-            # if condition is faster than two inner product!
-            if y_t == 1:
-                gradwt = 2 * (alphaj - aj) @ gfpt
-                gradat = 2 * (aj - fpt)
-                gradbt = 2 * bj
-                gradalphat = -2 * (alphaj - fpt)
-            else:
-                gradwt = 2 * (alphaj - bj) @ gfnt
-                gradat = 2 * aj
-                gradbt = 2 * (bj - fnt)
-                gradalphat = -2 * (alphaj - fnt)
-
-            wj = wj - eta * (gradwt * x_t * y_t / (2 * (m + 1)) + gamma * (wj - WT))
-            aj = aj - eta * gradat / (2 * (m + 1))
-            bj = bj - eta * gradbt / (2 * (m + 1))
-            alphaj = alphaj + eta * gradalphat / (2 * (m + 1))
-
-            # some projection
-            # ---------------------------------
-            tnm = np.linalg.norm(wj)
-            if tnm > R:
-                wj = wj * (R / tnm)
-            tnm = np.linalg.norm(aj)
-            if tnm > R1:
-                aj = aj * (R1 / tnm)
-            tnm = np.linalg.norm(bj)
-            if tnm > R2:
-                bj = bj * (R2 / tnm)
-            tnm = np.linalg.norm(alphaj)
-            if tnm > R1 + R2:
-                alphaj = alphaj * ((R1 + R2) / tnm)
-            # ---------------------------------
-
-            bwj += wj
-            baj += aj
-            bbj += bj
-            balphaj += alphaj
-
-
-            if res_idx[i_res] == t:
-                stop = time.time()
-                time_s += stop - start
-
-                pred = x_te @ wj
-                if not np.all(np.isfinite(pred)):
-                    break
-                roc_auc[i_res] = roc_auc_score(y_te, pred)
-                elapsed_time[i_res] = time_s
-
-                print('iteration: %d AUC: %.6f time eplapsed: %.2f' % (t, roc_auc[i_res], elapsed_time[i_res]))
-
-                i_res += 1
-
-        # update outer loop variables
-        WT = bwj / (k + 1)
-        AT = baj / (k + 1)
-        BT = bbj / (k + 1)
-        ALPHAT = balphaj / (k + 1)
-
-    return elapsed_time, roc_auc
 
 def loss_func(name, L):
 
@@ -333,7 +205,7 @@ def SAUC(Xtr,Xte,Ytr,Yte,options,stamp = 10):
     # load parameter
     ids = options['ids']
     n_ids = len(ids)
-    T = int((-1 + np.sqrt(1 + 8 * n_ids)) / 2) - 1  # outer loop iterations
+    T = int(round((-1 + np.sqrt(1 + 8 * n_ids)) / 2) - 1)  # outer loop iterations
     name = options['name']
     N = options['m']
     R = options['R']
@@ -454,7 +326,7 @@ def SAUC(Xtr,Xte,Ytr,Yte,options,stamp = 10):
 
         roc_auc.append(roc_auc_score(Yte, Xte @ WT))
 
-        if t % stamp == 0:
+        if t % stamp == 0 or t == T:
             print('iteration: %d AUC: %.6f time elapsed: %.2f' % (t, roc_auc[-1], elapsed_time[-1]))
 
         start_time = time.time()

@@ -22,7 +22,7 @@ def lookat(alg,dataset):
 
     print('alg = %s data = %s' %(alg,dataset))
 
-    df = pd.read_pickle('/Users/yangzhenhuan/PycharmProjects/AUC/results/cv_%s_%s.h5' % (alg, dataset))
+    df = pd.read_pickle('/home/neyo/PycharmProjects/AUC/results/cv_%s_%s.h5' % (alg, dataset))
 
     for column in df.columns:
 
@@ -32,7 +32,7 @@ def lookat(alg,dataset):
 
 if __name__ == '__main__':
 
-    alg = 'SOLAM'
-    dataset = 'a1a'
+    alg = 'SPAM'
+    dataset = 'cifar10'
 
     lookat(alg,dataset)
