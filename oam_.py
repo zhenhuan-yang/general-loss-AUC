@@ -49,7 +49,8 @@ def OAM(x_tr, x_te, y_tr, y_te, options):
     n_pass = options['n_pass']
     res_idx = 2 ** (np.arange(4, np.log2(n_pass * n), options['rec']))
     res_idx[-1] = n_pass * n  # make sure the last step recorded
-    res_idx = [int(i) for i in res_idx]  # map(int, res_idx)
+    res_idx = [1]+[int(i) for i in res_idx]  # map(int, res_idx)
+
     n_idx = len(res_idx)
     roc_auc = np.zeros(n_idx)
     elapsed_time = np.zeros(n_idx)

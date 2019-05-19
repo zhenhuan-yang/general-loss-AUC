@@ -102,19 +102,19 @@ def cv(alg, num_cpus, n_splits, n_repeats, C, R):
 if __name__ == '__main__':
 
     # Define what to run this time
-    datasets = ['smallNORB']
-    algs = ['SOLAM']
+    datasets = ['news20']
+    algs = ['SAUC']
     num_cpus = 15
     n_splits = 3
     n_repeats = 1
 
     # Define hyper parameters
     options = {}
-    options['name'] = 'hinge'
-    options['m'] = 1
+    options['name'] = 'logistic'
+    options['m'] = 2
     options['delta'] = .1
     options['tau'] = 50
-    options['n_pass'] = 3
+    options['n_pass'] = 5
     options['rec'] = .5
 
     # Define model parameter
@@ -122,10 +122,10 @@ if __name__ == '__main__':
     options['Nn'] = 100
 
     # Define model parameter to search
-    # R = [2**i for i in range(-2,-1)] + [3**i for i in range(-2,-1)] + [5**i for i in range(-2,-1)]
-    R = [10**i for i in range(1,2)]
-    # C = [2**i for i in range(-3,4)] + [3**i for i in range(-3,4)] + [5**i for i in range(-2,3)]
-    C = [10**i for i in range(1,2)]
+    R = [2**i for i in range(-7,-1)]
+    R = [10**i for i in range(-2,3)]
+    # C = [5**i for i in range(-3,-1)] + [10**i for i in range(-2,1)]
+    C = [10**i for i in range(-2,3)]
     for dataset in datasets:
 
         print('Loading dataset = %s ......' %(dataset), end=' ')
@@ -143,21 +143,18 @@ if __name__ == '__main__':
             # Results
             for c, r in product(C, R):
                 result[(c, r)] = {}
-                # find minimal recorded length
-                L = np.zeros(n_splits * n_repeats)
-                for i in range(n_splits * n_repeats):
-                    L[i] = len(roc_auc[(i,c,r)])
-                l = int(min(L))
-                cv_roc_auc = np.zeros((n_splits * n_repeats, l))
-                for i in range(n_splits * n_repeats):
-                    cv_roc_auc[i] = roc_auc[(i, c, r)][:l]
+                do = []
 
-                result[(c, r)]['MEAN'] = np.mean(cv_roc_auc, axis=0)
-                result[(c, r)]['STD'] = np.std(cv_roc_auc, axis=0)
+                for i in range(n_splits * n_repeats):
+                    result[(c,r)][i] = roc_auc[(i, c, r)]
+                    do.append(max(result[c, r][i]))
+
+                MEAN = np.mean(do)
+                STD = np.std(do)
 
                 print('alg = %s data = %s c = %.2f R = %.2f AUC = ' % (alg, dataset, c, r), end=' ')
-                print(('%.4f$\pm$' % max(result[(c,r)]['MEAN'])).lstrip('0'), end='')
-                print(('%.4f' % min(result[(c,r)]['STD'])).lstrip('0'))
+                print(('%.4f$\pm$' % MEAN).lstrip('0'), end='')
+                print(('%.4f' % STD).lstrip('0'))
 
             # Results
             df = pd.DataFrame(result)

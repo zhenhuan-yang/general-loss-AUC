@@ -22,14 +22,13 @@ def lookat(algs,datasets,para):
         fig -
     '''
 
-    # result = pd.DataFrame()
-    for dataset in datasets:
+    if para == 'cv':
 
-        for alg in algs:
+        for dataset in datasets:
 
-            print('alg = %s data = %s' % (alg, dataset))
+            for alg in algs:
 
-            if para == 'bound':
+                print('alg = %s data = %s' % (alg, dataset))
 
                 # Read
                 df = pd.read_pickle('/home/neyo/PycharmProjects/AUC/results/cv_%s_%s.h5' % (alg, dataset))
@@ -46,38 +45,67 @@ def lookat(algs,datasets,para):
                     print(('%.4f' % STD).lstrip('0'))
 
 
-            elif para == 'bern':
+    elif para == 'bern':
 
-                # Read
-                df = pd.read_pickle('/home/neyo/PycharmProjects/AUC/results/deg_%s.h5' % (dataset))
+        for dataset in datasets:
 
-                # results
-                line = []
-                error = []
-                for m in df.columns:
-                    ind = np.argmax(df[m]['MEAN'])
-                    line.append(df[m]['MEAN'][ind])
-                    error.append(df[m]['STD'][ind])
-                plt.style.use('seaborn-whitegrid')
-                plt.errorbar(df.columns, line, yerr=error, fmt='--o', capsize=5)
+            # Read
+            df = pd.read_pickle('/home/neyo/PycharmProjects/AUC/results/deg_%s.h5' % (dataset))
 
-                plt.xlabel('Degree')
-                plt.ylabel('AUC')
-                plt.ylim([.5, 1])
-                plt.xticks(df.columns)
-                plt.title('%s' % (dataset))
-                plt.show()
+            # results
+            line = []
+            error = []
+            for m in df.columns:
+                ind = np.argmax(df[m]['MEAN'])
+                line.append(df[m]['MEAN'][ind])
+                error.append(df[m]['STD'][ind])
+            plt.style.use('seaborn-whitegrid')
+            plt.errorbar(df.columns, line, yerr=error, fmt='--o', capsize=5)
 
-            else:
-                print('Wrong parameter!')
-                return
+            plt.xlabel('Degree')
+            plt.ylabel('AUC')
+            plt.ylim([.5, 1])
+            plt.xticks(df.columns)
+            plt.title('%s' % (dataset))
+            plt.show()
+
+    elif para == 'cp':
+
+        for dataset in datasets:
+
+            # Plot results
+            fig = plt.figure()  # create a figure object
+            # fig.suptitle(dataset)
+            for alg in algs:
+
+                # read result
+                df = pd.read_pickle('/home/neyo/PycharmProjects/AUC/results/cp_%s_%s.h5' % (alg,dataset))
+
+                if alg == 'SAUC':
+                    plt.plot(df['elapsed_time'][:], df['roc_auc'][:], 'b--', label=alg)
+
+                elif alg == 'OAM':
+                    plt.plot(df['elapsed_time'][:], df['roc_auc'][:], 'r-', label=alg)
+
+            plt.xlabel('CPU Time(s)')
+            plt.ylabel('AUC')
+            plt.xlim([-2, 120])
+            plt.legend(loc=4)
+
+            plt.show()
+
+            fig.savefig('/home/neyo/PycharmProjects/AUC/results/cp_%s.png' % (dataset))
+
+    else:
+        print('Wrong parameter!')
+        return
 
     return
 
 if __name__ == '__main__':
 
-    algs = ['SPAM']
-    datasets = ['a1a']
-    para = 'bound'
+    algs = ['SAUC','OAM']
+    datasets = ['news20']
+    para = 'cp'
 
     lookat(algs,datasets,para)
