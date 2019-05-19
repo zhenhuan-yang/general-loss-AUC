@@ -49,7 +49,7 @@ def lookat(algs,names,datasets,para):
 
             # Plot results
             fig = plt.figure()  # create a figure object
-            # fig.suptitle(dataset)
+            fig.suptitle(dataset)
             plt.style.use('seaborn-whitegrid')
 
             # Read
@@ -71,13 +71,13 @@ def lookat(algs,names,datasets,para):
                     error.append(np.std(res[column]))
 
                 if name == 'hinge':
-                    plt.errorbar(df.columns, line, yerr=error, fmt='--o', capsize=5, label = name)
+                    plt.errorbar(df.columns, line, yerr=error, fmt='r--o', capsize=5, label = name)
                 elif name == 'logistic':
-                    plt.errorbar(df.columns, line, yerr=error, fmt='-.*', capsize=5, label = name)
+                    plt.errorbar(df.columns, line, yerr=error, fmt='b-.*', capsize=5, label = name)
 
             plt.xlabel('Degree')
             plt.ylabel('AUC')
-            plt.ylim([.5, 1])
+            # plt.ylim([.5, 1])
             # plt.xticks(df.columns)
             plt.legend(loc=4)
             plt.show()
@@ -90,7 +90,7 @@ def lookat(algs,names,datasets,para):
 
             # Plot results
             fig = plt.figure()  # create a figure object
-            # fig.suptitle(dataset)
+            fig.suptitle(dataset)
             for alg in algs:
 
                 # read result
@@ -121,7 +121,7 @@ if __name__ == '__main__':
 
     algs = ['SAUC','OAM']
     names = ['hinge', 'logistic']
-    datasets = ['a1a']
+    datasets = ['cod-rna','svmguide1','skin_nonskin']
 
     para = 'bern'
 

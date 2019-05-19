@@ -75,9 +75,9 @@ def cv(num_cpus, n_splits, n_repeats, M):
 if __name__ == '__main__':
 
     # Define what to run this time
-    datasets = ['a1a']
+    datasets = ['skin_nonskin']
     names = ['hinge','logistic']
-    num_cpus = 15
+    num_cpus = 3
     n_splits = 3
     n_repeats = 1
 
@@ -87,12 +87,12 @@ if __name__ == '__main__':
     options['name'] = 'hinge'
 
     # Define model parameter
-    options['R'] = 1
-    options['c'] = .1
+    options['R'] = .1
+    options['c'] = 1
 
 
     # Define model parameter to search
-    M = [1,5,10]
+    M = [2,5,10,50]
 
     for dataset in datasets:
 
