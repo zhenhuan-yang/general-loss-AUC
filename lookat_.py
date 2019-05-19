@@ -9,15 +9,13 @@ from itertools import product
 import matplotlib.pyplot as plt
 from math import fabs
 
-def lookat(algs,datasets,para):
+def lookat(algs,names,datasets,para):
     '''
     look at results
-
     input:
         alg - algorithm
         dataset -
         para - which result you want to see
-
     output:
         fig -
     '''
@@ -31,7 +29,7 @@ def lookat(algs,datasets,para):
                 print('alg = %s data = %s' % (alg, dataset))
 
                 # Read
-                df = pd.read_pickle('/home/neyo/PycharmProjects/AUC/results/cv_%s_%s.h5' % (alg, dataset))
+                df = pd.read_pickle('/Users/yangzhenhuan/PycharmProjects/AUC/results/cv_%s_%s.h5' % (alg, dataset))
 
                 for column in df.columns:
                     folders = len(df[column])
@@ -49,25 +47,42 @@ def lookat(algs,datasets,para):
 
         for dataset in datasets:
 
-            # Read
-            df = pd.read_pickle('/home/neyo/PycharmProjects/AUC/results/deg_%s.h5' % (dataset))
-
-            # results
-            line = []
-            error = []
-            for m in df.columns:
-                ind = np.argmax(df[m]['MEAN'])
-                line.append(df[m]['MEAN'][ind])
-                error.append(df[m]['STD'][ind])
+            # Plot results
+            fig = plt.figure()  # create a figure object
+            # fig.suptitle(dataset)
             plt.style.use('seaborn-whitegrid')
-            plt.errorbar(df.columns, line, yerr=error, fmt='--o', capsize=5)
+
+            # Read
+            for name in names:
+                df = pd.read_pickle('/Users/yangzhenhuan/PycharmProjects/AUC/results/deg_%s_%s.h5' % (name,dataset))
+
+                res = {}
+                line = []
+                error = []
+
+                for column in df.columns:
+                    folders = len(df[column])
+                    res[column] = []
+
+                    for folder in range(folders):
+                        res[column].append(max(df[column][folder]))
+
+                    line.append(np.mean(res[column]))
+                    error.append(np.std(res[column]))
+
+                if name == 'hinge':
+                    plt.errorbar(df.columns, line, yerr=error, fmt='--o', capsize=5, label = name)
+                elif name == 'logistic':
+                    plt.errorbar(df.columns, line, yerr=error, fmt='-.*', capsize=5, label = name)
 
             plt.xlabel('Degree')
             plt.ylabel('AUC')
             plt.ylim([.5, 1])
-            plt.xticks(df.columns)
-            plt.title('%s' % (dataset))
+            # plt.xticks(df.columns)
+            plt.legend(loc=4)
             plt.show()
+
+            fig.savefig('/Users/yangzhenhuan/PycharmProjects/AUC/results/bern_%s.png' % (dataset))
 
     elif para == 'cp':
 
@@ -79,7 +94,7 @@ def lookat(algs,datasets,para):
             for alg in algs:
 
                 # read result
-                df = pd.read_pickle('/home/neyo/PycharmProjects/AUC/results/cp_%s_%s.h5' % (alg,dataset))
+                df = pd.read_pickle('/Users/yangzhenhuan/PycharmProjects/AUC/results/cp_%s_%s.h5' % (alg,dataset))
 
                 if alg == 'SAUC':
                     plt.plot(df['elapsed_time'][:], df['roc_auc'][:], 'b--', label=alg)
@@ -94,7 +109,7 @@ def lookat(algs,datasets,para):
 
             plt.show()
 
-            fig.savefig('/home/neyo/PycharmProjects/AUC/results/cp_%s.png' % (dataset))
+            fig.savefig('/Users/yangzhenhuan/PycharmProjects/AUC/results/cp_%s.png' % (dataset))
 
     else:
         print('Wrong parameter!')
@@ -105,7 +120,9 @@ def lookat(algs,datasets,para):
 if __name__ == '__main__':
 
     algs = ['SAUC','OAM']
-    datasets = ['news20']
-    para = 'cp'
+    names = ['hinge', 'logistic']
+    datasets = ['a1a']
 
-    lookat(algs,datasets,para)
+    para = 'bern'
+
+    lookat(algs,names,datasets,para)
