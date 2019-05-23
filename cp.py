@@ -4,6 +4,7 @@ Author: Zhenhuan(Neyo) Yang
 '''
 
 import h5py
+import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.datasets import load_svmlight_file
 from sklearn import preprocessing
@@ -34,19 +35,14 @@ if __name__ == '__main__':
 
 
     # Define what to run this time
-    dataset = 'a9a'
+    dataset = 'leu'
     ALG = ['SAUC']
 
     print('Loading dataset = %s ......' %(dataset), end=' ')
-    # hf = h5py.File('/home/neyo/PycharmProjects/AUC/h5-datasets/%s.h5' % (dataset), 'r')
-    # X = hf['FEATURES'][:]
-    # y = hf['LABELS'][:]
-    # hf.close()
 
-    X, y = load_svmlight_file('/Users/yangzhenhuan/PycharmProjects/AUC/bi-datasets/%s' %(dataset))
 
+    X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/bi-datasets/%s' %dataset)
     X = X.toarray()
-
     # Simple prepare training and testing
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=7)
 
@@ -62,16 +58,15 @@ if __name__ == '__main__':
             options['T'] = 500
             res[alg] = FSAUC(X_train, X_test, y_train, y_test, options)
         elif alg == 'OAM':
-            options['T'] = 1000
+            options['T'] = 2000
             res[alg] = OAM(X_train, X_test, y_train, y_test, options)
         elif alg == 'OPAUC':
             options['T'] = 3000
             res[alg] = OPAUC(X_train, X_test, y_train, y_test, options)
         elif alg == 'SPAM':
-            options['T'] = 100
+            options['T'] = 3000
             res[alg] = SPAM(X_train, X_test, y_train, y_test, options)
         elif alg == 'SAUC':
-
             options['T'] = 200
             res[alg] = SAUC(X_train, X_test, y_train, y_test, options)
         else:
@@ -88,4 +83,4 @@ if __name__ == '__main__':
     plt.legend(loc=4)
     plt.show()
 
-    fig.savefig('/Users/yangzhenhuan/PycharmProjects/AUC/results/cp_%s.png' % (dataset))
+    fig.savefig('/home/neyo/PycharmProjects/AUC/results/cp_%s.png' % (dataset))

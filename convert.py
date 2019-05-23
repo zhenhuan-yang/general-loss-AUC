@@ -12,7 +12,7 @@ import os
 
 if __name__ == '__main__':
 
-    datasets = ['rcv1_train.multiclass']
+    datasets = ['webspam_u']
 
     for dataset in datasets:
 

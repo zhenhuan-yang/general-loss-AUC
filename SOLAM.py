@@ -68,17 +68,20 @@ def SOLAM(Xtr,Xte,Ytr,Yte, options,stamp = 10):
 
     for t in range(1,T+1):
 
+        xt = Xtr[t%n]
+        yt = Ytr[t%n]
+
         # approximate prob
-        pt = ((t-1)*pt + (Ytr[t%n]+1)//2)/t
+        pt = ((t-1)*pt + (yt+1)//2)/t
 
         # compute inner product
-        prod = wt @ Xtr[t%n]
+        prod = xt @ wt
 
         # step size
         eta = c/sqrt(t)
 
         # compute gradient
-        if Ytr[t%n] == 1:
+        if yt == 1:
             gradwt = 2*(1-pt)*(prod - at) - 2*(1+alphat)*(1-pt)
             gradat = 2*(1-pt)*(at - prod)
             gradbt = 0.0
@@ -89,7 +92,7 @@ def SOLAM(Xtr,Xte,Ytr,Yte, options,stamp = 10):
             gradbt = 2*pt*(bt-prod)
             gradalphat = 2 * pt * prod - 2 * pt * (1 - pt) * alphat
         # update variable
-        wt = proj(wt - eta*gradwt*Xtr[t%n],R)
+        wt = proj(wt - eta*gradwt*xt,R)
         at = proj(at - eta*gradat,L/2)
         bt = proj(bt - eta*gradbt,L/2)
         alphat = proj(alphat + eta*gradalphat,L)
@@ -103,7 +106,7 @@ def SOLAM(Xtr,Xte,Ytr,Yte, options,stamp = 10):
 
         # write results
         elapsed_time.append(time.time() - start_time)
-        roc_auc.append(roc_auc_score(Yte, np.dot(Xte, bwt)))
+        roc_auc.append(roc_auc_score(Yte, Xte @ bwt))
 
         # running log
         if t % stamp == 0:

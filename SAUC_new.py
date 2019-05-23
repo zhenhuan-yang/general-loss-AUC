@@ -25,10 +25,22 @@ def comb(N):
             c[n][k] = factorial(n) / factorial(k) / factorial(n - k)
     return c
 
-def bound(N, loss, L, comb_dict):
+def bound(N, loss, L, p, comb_dict):
 
     '''
     Calculate annoying parameters to estimate gamma
+
+    input:
+        N - degree of Bernstein
+        loss - loss function
+        L - bound on prod
+        p - positive probability
+        comb_dict - combinatorial dictionary
+
+    output:
+        R1 - bound on a
+        R2 - bound on b
+        gamma - weakly convex parameter
     '''
 
     R1 = 0.0
@@ -62,6 +74,13 @@ def bound(N, loss, L, comb_dict):
         R2 += beta0
         Sm1 += beta1
         Sm2 += beta2
+
+    R1 = R1/p
+    R2 = R2/(1-p)
+    Sp1 = Sp1*(1-p)
+    Sp2 = Sp2*(1-p)
+    Sm1 = Sm1*p
+    Sm2 = Sm2*p
 
     gamma = max((2 * R1 + R2) * Sp2 + Sp1 ** 2, (2 * R2 + R1) * Sm2 + Sm1 ** 2) / (N + 1)
 
@@ -198,7 +217,7 @@ def proj(x, R):
         x = x / norm * R
     return x
 
-def SAUC(Xtr,Xte,Ytr,Yte,options,stamp = 1):
+def SAUC_new(Xtr,Xte,Ytr,Yte,options,stamp = 10):
     '''
     Stochastic AUC Optimization with General Loss
 
@@ -224,13 +243,15 @@ def SAUC(Xtr,Xte,Ytr,Yte,options,stamp = 1):
     name = options['name']
     N = options['N']
     R = options['R']
-    L = 2 * R #* max(np.linalg.norm(Xtr, axis=1))
+    L = 2 * R * max(np.linalg.norm(Xtr, axis=1))
     c = options['c']
     # B = options['B']
     # sampling = options['sampling']
 
     # get the dimension of what we are working with
     n, d = Xtr.shape
+
+    p = sum(Ytr[Ytr == 1]) / n
 
     WT = np.zeros(d)
     AT = np.zeros(N + 1)
@@ -245,7 +266,7 @@ def SAUC(Xtr,Xte,Ytr,Yte,options,stamp = 1):
     beta, gbeta = coef(N, loss, L, comb_dict)
 
     # compute gamma
-    R1, R2, gamma = bound(N,loss,L,comb_dict)
+    R1, R2, gamma = bound(N,loss,L,p,comb_dict)
 
     print('SAUC with loss = %s N = %d R = %d gamma = %.02f c = %d' % (name, N, R, gamma, c))
 
@@ -280,29 +301,29 @@ def SAUC(Xtr,Xte,Ytr,Yte,options,stamp = 1):
 
             index = (t * (t - 1) // 2 + j) % n
 
-            prod = Xtr[index] @ wj
+            prod = wj @ Xtr[index]
 
             fpt, gfpt = pos(N, prod, L)
             fnt, gfnt = neg(N, prod, L, beta, gbeta)
 
             # if condition is faster than two inner product!
             if Ytr[index] == 1:
-                gradwt = 2 * (alphaj - aj) @ gfpt
-                gradat = 2 * (aj - fpt)
-                gradbt = 2 * bj
-                gradalphat = -2 * (alphaj - fpt)
+                gradwt = 2 * (alphaj - aj) @ gfpt * (1-p)
+                gradat = 2 * aj * p * (1-p) - 2 * fpt * (1-p)
+                gradbt = 2 * bj * p * (1-p)
+                gradalphat = -2 * alphaj * p * (1-p) + 2 * fpt * (1-p)
             else:
-                gradwt = 2 * (alphaj - bj) @ gfnt
-                gradat = 2 * aj
-                gradbt = 2 * (bj - fnt)
-                gradalphat = -2 * (alphaj - fnt)
+                gradwt = 2 * (alphaj - bj) @ gfnt * p
+                gradat = 2 * aj * p * (1 - p)
+                gradbt = 2 * bj * p * (1 - p) - 2 * fnt * p
+                gradalphat = -2 * alphaj * p * (1-p) + 2 * fnt * p
 
             wj = wj - eta * (gradwt * Xtr[index] * Ytr[index] / (2 * (N + 1)) + gamma * (wj - WT))
             aj = aj - eta * gradat / (2 * (N + 1))
             bj = bj - eta * gradbt / (2 * (N + 1))
             alphaj = alphaj + eta * gradalphat / (2 * (N + 1))
 
-            wj = proj(wj, R)
+            wj = proj(wj, L / 2)
             aj = proj(aj, R1)
             bj = proj(bj, R2)
             alphaj = proj(alphaj, R1 + R2)

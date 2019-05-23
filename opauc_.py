@@ -1,6 +1,6 @@
 """
 Created on Tue Nov  6 09:25:13 2018
-@author: Zhenhuan Yang
+@author:
 # -*- coding: utf-8 -*-
 Spyder Editor
 We apply the algorithm in Gao, 2013 ICML to do AUC maximization

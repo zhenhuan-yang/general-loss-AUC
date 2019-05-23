@@ -1,6 +1,6 @@
 """
 Created on Fri Nov 16 15:53:25 2018
-@author: Zhenhuan Yang
+@author:
 We apply the algorithm in Zhao, 2011 ICML to do AUC maximization
 Input:
     x_tr: training instances

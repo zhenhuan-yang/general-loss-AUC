@@ -362,7 +362,7 @@ def PGSPD(N, t, loss, passing_list, X, Y, L, R1, R2, gamma, c, bwt, bat, bbt, ba
 
     return bwt, bat, bbt, balphat
 
-def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 1):
+def SAUC_prev(Xtr,Xte,Ytr,Yte,options,stamp = 10):
     '''
     Stochastic AUC Optimization with General Loss
 
@@ -401,6 +401,9 @@ def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 1):
     BT = np.zeros(N + 1)
     ALPHAT = np.zeros(N + 1)
 
+    # restore average wt
+    avgwt = WT + 0.0
+
     # define loss function
     loss = bern_loss_func(name, L)
 
@@ -438,10 +441,11 @@ def SAUC(Xtr,Ytr,Xte,Yte,options,stamp = 1):
         sum_time += time.time() - prep_time
         # Inner loop
         WT, AT, BT, ALPHAT = PGSPD(N, t, loss, tr_list, Xtr, Ytr, L, R1, R2, gamma, c, WT, AT, BT, ALPHAT)
+        avgwt = ((t - 1) * avgwt + WT) / t
 
         if t % stamp == 0:
             elapsed_time.append(time.time() - start_time - sum_time)
-            roc_auc.append(roc_auc_score(Yte, np.dot(Xte, WT)))
+            roc_auc.append(roc_auc_score(Yte, np.dot(Xte, avgwt)))
             print('iteration: %d AUC: %.6f time elapsed: %.2f' % (t, roc_auc[-1], elapsed_time[-1]))
 
             sum_time = 0.0

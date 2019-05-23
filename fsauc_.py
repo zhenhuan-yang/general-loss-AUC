@@ -1,6 +1,6 @@
 """
 Created on Tue Nov  6 09:25:13 2018
-@author: Zhenhuan Yang
+@author:
 # -*- coding: utf-8 -*-
 Spyder Editor
 We apply the algorithm in Liu, 2018 ICML to do Fast AUC maximization

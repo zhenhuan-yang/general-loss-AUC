@@ -30,14 +30,14 @@ if __name__ == '__main__':
 
 
     # Define what to run this time
-    dataset = 'news20'
-    ALG = ['SAUC']
+    dataset = 'dna'
+    ALG = ['OAM']
 
     print('Loading dataset = %s ......' %(dataset), end=' ')
     X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/bi-datasets/%s' %(dataset))
     X = X.toarray()
     # Simple prepare training and testing
-    X_train, X_test, y_train, y_test = train_test_split(X, y,  test_size=0.33, random_state=10)
+    X_train, X_test, y_train, y_test = train_test_split(X, y,  test_size=0.33, random_state=1)
     n_tr = len(y_train)
 
     print('Done!')
@@ -48,7 +48,7 @@ if __name__ == '__main__':
         res['elapsed_time'] = []
         res['roc_auc'] = []
         if alg == 'OAM':
-            options['R'] = 10
+            options['R'] = 1
             options['c'] = 1
             options['n_pass'] = 1
             options['ids'] = get_idx(n_tr, options['n_pass'])
@@ -57,9 +57,9 @@ if __name__ == '__main__':
             df.to_pickle('/home/neyo/PycharmProjects/AUC/results/cp_%s_%s.h5' % (alg,dataset))
             print('Done!')
         elif alg == 'SAUC':
-            options['R'] = .01
+            options['R'] = .1
             options['c'] = 1
-            options['n_pass'] = 5
+            options['n_pass'] = 1
             options['ids'] = get_idx(n_tr, options['n_pass'])
             res['elapsed_time'], res['roc_auc'] = SAUC(X_train, X_test, y_train, y_test, options)
             df = pd.DataFrame(res)

@@ -1,6 +1,6 @@
 """
 Created on Tue May  6 09:25:13 2019
-@author: Zhenhuan Yang
+@author:
 # -*- coding: utf-8 -*-
 Spyder Editor
 We apply the algorithm in Natole, 2018 ICML to do AUC maximization

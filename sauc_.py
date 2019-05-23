@@ -1,9 +1,9 @@
 """
 Created on Tue Nov  6 09:25:13 2018
-@author: Zhenhuan Yang
+@author:
 # -*- coding: utf-8 -*-
 Spyder Editor
-We apply the algorithm in Yang, 2019 NIPS to do Fast AUC maximization
+
 Input:
     x_tr: training instances
     y_tr: training labels

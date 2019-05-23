@@ -3,6 +3,7 @@ Bernstein degree
 Author: Zhenhuan(Neyo) Yang
 '''
 
+import os
 import numpy as np
 import multiprocessing as mp
 import pandas as pd
@@ -75,9 +76,9 @@ def cv(num_cpus, n_splits, n_repeats, M):
 if __name__ == '__main__':
 
     # Define what to run this time
-    datasets = ['skin_nonskin']
-    names = ['hinge','logistic']
-    num_cpus = 3
+    datasets = ['sector.scale']
+    names = ['hinge']
+    num_cpus = 15
     n_splits = 3
     n_repeats = 1
 
@@ -87,30 +88,44 @@ if __name__ == '__main__':
     options['name'] = 'hinge'
 
     # Define model parameter
-    options['R'] = .1
-    options['c'] = 1
+    options['R'] = .01
+    options['c'] = .1
 
 
     # Define model parameter to search
-    M = [2,5,10,50]
+    M = [2,5,10,25,40]
+
 
     for dataset in datasets:
 
         print('Loading dataset = %s ......' % (dataset), end=' ')
-        X, y = load_svmlight_file('/Users/yangzhenhuan/PycharmProjects/AUC/bi-datasets/%s' % (dataset))
+        X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/bi-datasets/%s' % (dataset))
         X = X.toarray()
         X, y = shuffle(X, y, random_state=10)
         print('Done!')
 
+
         for name in names:
-            result = {}
+
+            if os.path.isfile('/home/neyo/PycharmProjects/AUC/results/deg_%s_%s.h5' % (name, dataset)):
+
+                df = pd.read_pickle('/home/neyo/PycharmProjects/AUC/results/deg_%s_%s.h5' % (name, dataset))
+                result = df.to_dict()
+            else:
+                result = {}
+
             roc_auc = cv(num_cpus, n_splits, n_repeats, M)
 
             for m in M:
-                result[(m)] = {}
+
+                if m in result.keys():
+                    pass
+                else:
+                    result[(m)] = {}
+
                 for i in range(n_splits * n_repeats):
                     result[(m)][i] = roc_auc[(i, m)]
 
             # Results
             df = pd.DataFrame(result)
-            df.to_pickle('/Users/yangzhenhuan/PycharmProjects/AUC/results/deg_%s_%s.h5' % (name,dataset))
+            df.to_pickle('/home/neyo/PycharmProjects/AUC/results/deg_%s_%s.h5' % (name,dataset))

@@ -111,7 +111,7 @@ def cv(alg, n, folders, num_cpus, C, R):
 if __name__ == '__main__':
 
     # Define what to run this time
-    datasets = ['ijcnn1']
+    datasets = ['skin_nonskin']
     algs = ['SAUC']
     folders = 3
     num_cpus = 15
@@ -119,8 +119,8 @@ if __name__ == '__main__':
     # Define hyper parameters
     options = {}
     options['name'] = 'hinge'
-    options['T'] = 200
-    options['N'] = 5
+    options['T'] = 10
+    options['N'] = 10
     options['delta'] = .1
     options['option'] = 'gradient'
     options['sampling'] = 'reservoir'
@@ -131,44 +131,39 @@ if __name__ == '__main__':
     options['tau'] = 50
 
     # Define model parameter to search
-    R = [.01, .1, 1, 10, 100]
-    C = [.01, .1, 1, 10, 100]
+    # R = [2**i for i in range(-2,-1)] + [3**i for i in range(-2,-1)] + [5**i for i in range(-2,4)] + [10**i for i in range(-2,3)]
+    R = [10 ** i for i in range(-1, 0)]
+    # C = [5**i for i in range(-3,-1)] + [10**i for i in range(-2,1)]
+    C = [10 ** i for i in range(-2, 3)]
 
     for dataset in datasets:
 
-        X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/datasets/%s' % (dataset))
-
-        X = preprocessing.normalize(X)
+        X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/bi-datasets/%s' % (dataset), dtype = np.float32)
 
         X = X.toarray()
 
-        X, y = shuffle(X, y, random_state=7)
+        X, y = shuffle(X, y, random_state= 7)
 
         m = len(y)
 
         for alg in algs:
             ROC_AUC = cv(alg, m, folders, num_cpus, C, R)
             result = {}
-            result_df = pd.DataFrame()
-
             # Results
             for c, r in product(C, R):
-                ROC = np.zeros((folders, options['T']))
+
                 result[(c, r)] = {}
+                do = []
                 for folder in range(folders):
-                    ROC[folder] = ROC_AUC[(folder, c, r)]
+                    result[(c,r)][folder] = ROC_AUC[(folder, c, r)]
+                    do.append(max(result[c,r][folder]))
 
-                result[(c, r)]['MEAN'] = np.mean(ROC, axis=0)
-                result[(c, r)]['STD'] = np.std(ROC, axis=0)
+                MEAN = np.mean(do)
+                STD = np.std(do)
 
-                result_df[(c, r)] = [np.max(result[(c, r)]['MEAN'])]
-
-            column_ind = np.argmax(result_df.values)
-            column = result_df.columns[column_ind]
-            ind = np.argmax(result[column]['MEAN'])
-            print('alg = %s data = %s c = %.2f R = %.2f AUC = ' % (alg, dataset, column[0], column[1]), end=' ')
-            print(('%.4f$\pm$' % result_df[column]).lstrip('0'), end='')
-            print(('%.4f' % result[column]['STD'][ind]).lstrip('0'))
+                print('alg = %s data = %s c = %.2f R = %.2f AUC = ' % (alg, dataset, c, r), end=' ')
+                print(('%.4f$\pm$' % MEAN).lstrip('0'), end='')
+                print(('%.4f' % STD).lstrip('0'))
 
             # Results
             df = pd.DataFrame(result)

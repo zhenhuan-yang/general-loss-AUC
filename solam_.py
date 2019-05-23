@@ -1,6 +1,6 @@
 """
 Created on Tue May  6 09:25:13 2019
-@author: Zhenhuan Yang
+@author:
 # -*- coding: utf-8 -*-
 Spyder Editor
 We apply the algorithm in Ying, 2016 NIPS to do AUC maximization

@@ -12,12 +12,10 @@ from math import fabs
 def lookat(algs,datasets,para):
     '''
     look at results
-
     input:
         alg - algorithm
         dataset -
         para - which result you want to see
-
     output:
         fig -
     '''
@@ -29,7 +27,7 @@ def lookat(algs,datasets,para):
 
             print('alg = %s data = %s' % (alg, dataset))
 
-            if para == 'bound':
+            if para == 'cv':
 
                 # Read
                 df = pd.read_pickle('/home/neyo/PycharmProjects/AUC/results/cv_%s_%s.h5' % (alg, dataset))
@@ -79,6 +77,7 @@ def lookat(algs,datasets,para):
                 plt.title('%s' % (dataset))
                 plt.show()
 
+
             else:
                 print('Wrong parameter!')
                 return
@@ -87,8 +86,8 @@ def lookat(algs,datasets,para):
 
 if __name__ == '__main__':
 
-    algs = ['SOLAM']
-    datasets = ['smallNORB']
-    para = 'bound'
+    algs = ['SAUC','OAM']
+    datasets = ['sector.scale']
+    para = 'cp'
 
     lookat(algs,datasets,para)

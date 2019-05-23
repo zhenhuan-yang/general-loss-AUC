@@ -99,9 +99,7 @@ if __name__ == '__main__':
 
     for dataset in datasets:
 
-        X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/datasets/%s' % (dataset))
-
-        X = preprocessing.normalize(X)
+        X, y = load_svmlight_file('/home/neyo/PycharmProjects/AUC/bi-datasets/%s' % (dataset))
 
         X = X.toarray()
 

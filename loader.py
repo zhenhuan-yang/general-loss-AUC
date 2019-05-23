@@ -48,7 +48,7 @@ def loader(filename,n = True,f = False,z = False,m = False,s = True):
 
     # centralize
     if m == True:
-        print('Nentralizing......', end=' ')
+        print('Centralizing......', end=' ')
         mean = np.mean(X, axis=1)
         X = (X.transpose() - mean).transpose()
         print('Done! Memory usage: %f' % (usage()))
